@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace DevLocker.Audio
 {
 	/// <summary>
-	/// Use to add sounds to your UI buttons and other Selectable elements.
+	/// Behaviour to add sounds to your UI buttons and other <see cref="Selectable"/> elements.
 	/// Instead of copying audio references for multiple buttons, use a shared template prefab.
 	/// The audio references here can be used to override the template ones.
 	///
@@ -25,7 +25,7 @@ namespace DevLocker.Audio
 		[Tooltip("When should audio be played in relation to the Selectable attached to.")]
 		public InteractableModeType InteractableMode = InteractableModeType.PlayWhenInteractable;
 
-		[Tooltip("Optional template to share audio setup.\nIt must be a prefab with the template component and AudioSource to copy settings from.\nThis way you can easily set common mixer output etc.")]
+		[Tooltip("Optional template to share audio setup.\nIt can have AudioSource component to copy settings from - this way you can easily set common mixer output etc.")]
 		public UIAudioTemplate Template;
 
 		[Header("Template Overrides")]
@@ -54,14 +54,21 @@ namespace DevLocker.Audio
 			if (Template) {
 
 				var templateSource = Template.GetComponent<AudioSource>();
-				AudioSource = gameObject.AddComponent<AudioSource>();
+				if (templateSource) {
+					AudioSource = GetComponent<AudioSource>(); // Can use this as template
 
-				AudioSource.playOnAwake = false;
-				AudioSource.loop = false;
-				AudioSource.outputAudioMixerGroup = templateSource.outputAudioMixerGroup;
-				AudioSource.volume = templateSource.volume;
+					if (AudioSource == null) {
+						AudioSource = gameObject.AddComponent<AudioSource>();
+						//AudioSource.spatialBlend = 0f;  // Will be copied below.
+					}
 
-				AudioSourcePlayer.CopyAudioSourceDetails(AudioSource, templateSource);
+					AudioSource.playOnAwake = false;
+					AudioSource.loop = false;
+					AudioSource.outputAudioMixerGroup = templateSource.outputAudioMixerGroup;
+					AudioSource.volume = templateSource.volume;
+
+					AudioSourcePlayer.CopyAudioSourceDetails(AudioSource, templateSource);
+				}
 
 				SubmitAudio = SubmitAudio ?? Template.SubmitAudio;
 				PointerClickAudio = PointerClickAudio ?? Template.PointerClickAudio;

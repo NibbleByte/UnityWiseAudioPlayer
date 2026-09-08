@@ -5,9 +5,8 @@ namespace DevLocker.Audio
 {
 	/// <summary>
 	/// Template to be used by <see cref="UIAudioEffects"/> as a way of sharing settings and audio references.
-	/// Must be placed next to AudioSource, preferably on a simple prefab.
+	/// Can be placed next to AudioSource, preferably on a simple prefab.
 	/// </summary>
-	[RequireComponent(typeof(AudioSource))]
 	public class UIAudioTemplate : MonoBehaviour
 	{
 		[Tooltip("Submit is called on pressing <Enter> or gamepad <A>, but NOT on pointer clicks.")]

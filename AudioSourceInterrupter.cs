@@ -17,7 +17,6 @@ namespace DevLocker.Audio
 		public AudioSource[] AudioSources;
 
 		[Tooltip("AudioSourcePlayers that are playing these AudioResources will be stopped")]
-
 		public AudioResource[] Resources;
 
 		[Tooltip("AudioSourcePlayers that are playing AudioResources with names containing this string (case-insensitive) will be stopped")]
@@ -30,29 +29,25 @@ namespace DevLocker.Audio
 		[Tooltip("Stop specified above targets when specified player starts playing")]
 		public AudioSourcePlayer StopTargetsOnWhenPlaying;
 
-		void Awake()
-		{
-			if (StopTargetsOnWhenPlaying) {
-				AudioSourcePlayer.PlayStarted += OnPlayStarted;
-			}
-		}
-
-		void OnDestroy()
-		{
-			if (StopTargetsOnWhenPlaying) {
-				AudioSourcePlayer.PlayStarted -= OnPlayStarted;
-			}
-		}
-
 		void OnEnable()
 		{
 			if (StopTargetsOnEnable) {
 				StopTargets();
 			}
 
-			if (StopTargetsOnWhenPlaying && StopTargetsOnWhenPlaying.IsPlaying) {
-				StopTargets();
+			if (StopTargetsOnWhenPlaying) {
+				AudioSourcePlayer.PlayStarted += OnPlayStarted;
+
+				if (StopTargetsOnWhenPlaying.IsPlaying) {
+					StopTargets();
+				}
 			}
+		}
+
+		void OnDisable()
+		{
+			// Always unsubscribe as StopTargetsOnWhenPlaying may have been destroyed, so null check is not valid.
+			AudioSourcePlayer.PlayStarted -= OnPlayStarted;
 		}
 
 		public void StopTargets()
