@@ -1,4 +1,4 @@
-using DevLocker.Utils;
+using DevLocker.Audio.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -39,12 +39,12 @@ namespace DevLocker.Audio.Editor
 	}
 
 	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioPredicate))]
-	public class AudioPredicateDrawer : SerializeReferenceCreatorDrawer
+	public class AudioPredicateDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
 
 	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioConductor))]
-	public class AudioConductorDrawer : SerializeReferenceCreatorDrawer
+	public class AudioConductorDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
 
