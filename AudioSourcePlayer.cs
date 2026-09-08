@@ -1,0 +1,917 @@
+using System;
+using System.Collections;
+using UnityEngine;
+using UnityEngine.Audio;
+using System.Collections.Generic;
+
+namespace DevLocker.Audio
+{
+	/// <summary>
+	/// Wraps around the AudioSource offering API improvements and simpler interface.
+	/// Also supports fading in and out sounds when interrupted (Stop, Pause, UnPause).
+	/// </summary>
+	public class AudioSourcePlayer : MonoBehaviour
+	{
+		public enum RepeatPatternType
+		{
+			Once = 0,
+			Loop = 1,
+
+			RepeatInterval = 4,
+		}
+
+		[Serializable]
+		public struct IntervalRange
+		{
+			public float MinSeconds;
+			public float MaxSeconds;
+
+			public float NextValue() => UnityEngine.Random.Range(MinSeconds, MaxSeconds);
+
+			public void OnValidate(UnityEngine.Object context)
+			{
+#if UNITY_EDITOR
+				if (MinSeconds < 0f) {
+					MinSeconds = 0f;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+
+				if (MaxSeconds < MinSeconds) {
+					MaxSeconds = MinSeconds;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+#endif
+			}
+		}
+
+		public delegate void PlayerEventHandler(AudioSourcePlayer player);
+		public static event PlayerEventHandler PlayStarted;
+		public static event PlayerEventHandler PlayPaused;
+		public static event PlayerEventHandler PlayUnpaused;
+		public static event PlayerEventHandler PlayStopped;
+
+		/// <summary>
+		/// Sets or gets resource to the audio source.
+		/// NOTE: Don't use from conductors!!! Use <see cref="PlayDirectResource(AudioResource)"/> instead.
+		/// </summary>
+		public AudioResource AudioResource {
+			get => m_AudioResource;
+			set {
+
+				// NOTE: Don't use from conductors!!!
+				m_AudioAsset = null;
+				m_AudioResource = value;
+
+				if (m_AudioSource) m_AudioSource.resource = value;
+			}
+		}
+
+		public AudioPlayerAsset AudioAsset
+		{
+			get => m_AudioAsset;
+			set {
+				m_AudioAsset = value;
+				m_AudioResource = null;
+
+				if (m_AudioSource) m_AudioSource.resource = null;
+			}
+		}
+
+		/// <summary>
+		/// Object used by <see cref="AudioPlayerAsset"/> filters as context.
+		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
+		/// </summary>
+		public object ConductorsFilterContext;
+
+		/// <summary>
+		/// Used by conductors to persist state per player between usages. For example: don't repeat last clip.
+		/// Try to use unique key names.
+		/// </summary>
+		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
+
+		public AudioMixerGroup Output {
+			get => m_Output;
+			set {
+				m_Output = value;
+				if (m_AudioSource) m_AudioSource.outputAudioMixerGroup = value;
+			}
+		}
+
+		public AudioSource Template {
+			get => m_Template;
+			set {
+				m_Template = value;
+				if (m_AudioSource) {
+					SetupAudioSource();
+				}
+			}
+		}
+
+		public bool Mute {
+			get => m_Mute;
+			set {
+				m_Mute = value;
+				if (m_AudioSource) m_AudioSource.mute = value;
+			}
+		}
+
+		public bool PlayOnEnable {
+			get => m_PlayOnEnable;
+			set {
+				m_PlayOnEnable = value;
+				// Handled by us.
+			}
+		}
+
+		/// <summary>
+		/// Short-cut for "<see cref="RepeatPattern"/> = <see cref="RepeatPatternType.Loop"/>"
+		/// </summary>
+		public bool Loop {
+			get => RepeatPattern == RepeatPatternType.Loop;
+			set => RepeatPattern = RepeatPatternType.Loop;
+		}
+
+		public RepeatPatternType RepeatPattern {
+			get => m_RepeatPattern;
+			set {
+				m_RepeatPattern = value;
+				if (m_AudioSource) m_AudioSource.loop = value == RepeatPatternType.Loop;
+				if (value == RepeatPatternType.RepeatInterval) {
+					m_NextPlayTime = Time.time;
+					m_LastIsPlayingForRepeatInterval = m_ConductorCoroutine != null || (m_AudioSource?.isPlaying ?? false);
+				}
+			}
+		}
+
+		public IntervalRange RepeatIntervalRange {
+			get => m_RepeatIntervalRange;
+			set {
+				m_RepeatIntervalRange = value;
+			}
+		}
+
+		public float Volume {
+			get => m_Volume;
+			set {
+				m_Volume = value;
+				if (m_AudioSource) m_AudioSource.volume = value;
+			}
+		}
+
+		public float Pitch => AudioSource?.pitch ?? 0f;
+
+		public float SpatialBlend => AudioSource?.spatialBlend ?? 0f;
+
+		public float LastPlayTime { get; private set; }
+
+		public AudioSource AudioSource {
+			get {
+				if (m_AudioSource == null) {
+					SetupAudioSource();
+				}
+
+				return m_AudioSource;
+			}
+		}
+
+		public static IReadOnlyList<AudioSourcePlayer> ActivePlayersRegister => m_ActivePlayersRegister.AsReadOnly();
+
+		[SerializeField]
+		[Tooltip("Resource to play")]
+		private AudioResource m_AudioResource;
+
+		[Tooltip("Custom audio assets provide more options on how to play your audio")]
+		[SerializeField]
+		private AudioPlayerAsset m_AudioAsset;
+
+
+		[SerializeField]
+		[Tooltip("Audio mixer to use.\nWill be overriden by AudioAsset's mixer if any.\nIf left empty, it will copy the one of the template, if any")]
+		private AudioMixerGroup m_Output;
+
+		[SerializeField]
+		[Tooltip("Prefab (or scene object) to be used as template when initializing the AudioSource properties")]
+		private AudioSource m_Template;
+
+		[SerializeField]
+		[Tooltip("Mute the sound")]
+		private bool m_Mute = false;
+
+		[SerializeField]
+		[Tooltip("Play automatically every time this component is enabled?")]
+		private bool m_PlayOnEnable = true;
+
+		[SerializeField]
+		[Tooltip("How sound should be repeated, if needed.")]
+		[UnityEngine.Serialization.FormerlySerializedAs("m_Loop")]
+		private RepeatPatternType m_RepeatPattern;
+
+		[SerializeField]
+		[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+		private IntervalRange m_RepeatIntervalRange;
+
+		[Tooltip("Fade duration when sound is interrupted (Stop, Pause, Unpause)")]
+		public float InterruptionFadeDuration = 0.2f;
+
+		[Range(0f, 1f)]
+		[SerializeField]
+		[Tooltip("Volume of the sound")]
+		private float m_Volume = 1f;
+
+		private static readonly List<AudioSourcePlayer> m_ActivePlayersRegister = new List<AudioSourcePlayer>();
+
+		private AudioSource m_AudioSource;
+
+		private Coroutine m_VolumeCoroutine;
+		private Coroutine m_ConductorCoroutine;
+
+		private float m_NextPlayTime;
+		private bool m_LastIsPlayingForRepeatInterval;
+		private bool m_ShouldPlayRepeating;
+
+		public static AudioSourcePlayer Quick2DPlayer;
+		public static AudioSourcePlayer Quick3DPlayer;
+
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		private static void ClearStaticsCache()
+		{
+			Quick2DPlayer = null;
+			Quick3DPlayer = null;
+		}
+
+		protected virtual void OnEnable()
+		{
+			m_ActivePlayersRegister.Add(this);
+
+			AudioSource.enabled = true;
+
+			// Restore in case it was changed by audio asset and coroutine was stopped from OnDisable().
+			AudioSource.outputAudioMixerGroup = m_Output ?? AudioSource.outputAudioMixerGroup;
+
+			if (PlayOnEnable && (AudioResource || AudioAsset)) {
+				Play();
+			}
+		}
+
+		protected virtual void OnDisable()
+		{
+			m_ActivePlayersRegister.Remove(this);
+
+			AudioSource.enabled = false;
+
+			m_ConductorCoroutine = null;
+		}
+
+		protected virtual void OnValidate()
+		{
+#if UNITY_EDITOR
+			if (InterruptionFadeDuration < 0f) {
+				InterruptionFadeDuration = 0f;
+				UnityEditor.EditorUtility.SetDirty(this);
+			}
+
+			m_RepeatIntervalRange.OnValidate(this);
+
+			if (Application.isPlaying && m_AudioSource) {
+				if (m_AudioSource.mute != m_Mute) {
+					m_AudioSource.mute = m_Mute;
+				}
+				if (m_AudioSource.loop != (m_RepeatPattern == RepeatPatternType.Loop)) {
+					m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
+				}
+				if (m_AudioSource.volume != m_Volume) {
+					m_AudioSource.volume = m_Volume;
+				}
+			}
+#endif
+		}
+
+		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval) || m_ConductorCoroutine != null);
+		public bool IsPaused { get; private set; }
+
+		// IsPlaying is false when paused.
+		public bool IsPlayingOrPaused => IsPaused || IsPlaying;
+
+		[ContextMenu("Play")]
+		public virtual void Play()
+		{
+			PlayImpl(0f);
+		}
+
+		public virtual void PlayDelayed(float delaySeconds)
+		{
+			PlayImpl(delaySeconds);
+		}
+
+		private void PlayImpl(float delay)
+		{
+			m_ShouldPlayRepeating = true;
+			IsPaused = false;
+
+			StopVolumeCrt();
+			StopConductorCrt();
+
+			if (m_AudioAsset != null) {
+				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(AudioAsset, delay));
+				PlayStarted?.Invoke(this);
+			} else {
+				if (delay <= 0f) {
+					AudioSource.Play();
+				} else {
+					AudioSource.PlayDelayed(delay);
+				}
+
+				LastPlayTime = Time.time;
+				PlayStarted?.Invoke(this);
+			}
+		}
+
+		public virtual void PlayOneShot(AudioClip clip, float volume = 1.0f)
+		{
+			StopVolumeCrt();
+			StopConductorCrt();
+
+			PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(this);    // So it shows up on the audio monitor.
+		}
+
+		public virtual void PlayOnGamepad(int playerIndex)
+		{
+#if UNITY_EDITOR
+			m_ShouldPlayRepeating = true;
+			IsPaused = false;
+
+			StopVolumeCrt();
+			StopConductorCrt();
+
+			AudioSource.PlayOnGamepad(playerIndex); // This is not available for every platform (e.g. PC doesn't have it).
+
+			LastPlayTime = Time.time;
+			PlayStarted?.Invoke(this);
+#endif
+		}
+
+		[ContextMenu("Stop")]
+		public virtual void Stop()
+		{
+			Stop(InterruptionFadeDuration);
+		}
+
+		public virtual void Stop(float interruptionFadeDuration)
+		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (!m_ShouldPlayRepeating)
+				return;
+
+			m_ShouldPlayRepeating = false;
+			IsPaused = false;
+
+			if (interruptionFadeDuration > 0f) {
+				// Just kill the coroutine and resume from where it left off.
+				if (m_VolumeCoroutine != null) {
+					StopCoroutine(m_VolumeCoroutine);
+				}
+				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(interruptionFadeDuration, false, AudioSource.Stop));
+			} else {
+				StopVolumeCrt();
+				StopConductorCrt();
+
+				AudioSource.Stop();
+			}
+
+			PlayStopped?.Invoke(this);
+		}
+
+		[ContextMenu("Pause")]
+		public virtual void Pause()
+		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (!m_ShouldPlayRepeating)
+				return;
+
+			m_ShouldPlayRepeating = false;
+			IsPaused = true;
+
+			if (InterruptionFadeDuration > 0f) {
+				// Just kill the coroutine and resume from where it left off.
+				if (m_VolumeCoroutine != null) {
+					StopCoroutine(m_VolumeCoroutine);
+				}
+				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, false, AudioSource.Pause));
+
+			} else {
+				StopVolumeCrt();
+				// Audio assets keep going and wait for the player to get unpaused.
+
+				AudioSource.Pause();
+			}
+
+			PlayPaused?.Invoke(this);
+		}
+
+		[ContextMenu("UnPause")]
+		public virtual void UnPause()
+		{
+			// Prevent multiple calls as it will reset the coroutine every time.
+			if (m_ShouldPlayRepeating)
+				return;
+
+			m_ShouldPlayRepeating = true;
+			IsPaused = false;
+
+			if (InterruptionFadeDuration > 0f) {
+				// Just kill the coroutine and resume from where it left off.
+				if (m_VolumeCoroutine != null) {
+					StopCoroutine(m_VolumeCoroutine);
+				}
+				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, true));
+				AudioSource.UnPause();
+
+			} else {
+				StopVolumeCrt();
+				// Audio assets keep updating while paused.
+
+				AudioSource.UnPause();
+			}
+
+			PlayUnpaused?.Invoke(this);
+		}
+
+		/// <summary>
+		/// Destroy the component + audio source OR the whole game object.
+		/// If <see cref="InterruptionFadeDuration"/> is non-zero value, will fade the sound first, then destroy it.
+		/// </summary>
+		public virtual void DestroyPlayer(bool destroyGameObject = false)
+		{
+			m_ShouldPlayRepeating = false;
+
+			System.Action destroyAction = () => {
+				if (destroyGameObject) {
+					GameObject.Destroy(gameObject);
+				} else {
+					if (m_AudioSource) {
+						GameObject.Destroy(m_AudioSource);
+					}
+					GameObject.Destroy(this);
+				}
+			};
+
+			if (InterruptionFadeDuration > 0f) {
+				// Just kill the coroutine and resume from where it left off.
+				if (m_VolumeCoroutine != null) {
+					StopCoroutine(m_VolumeCoroutine);
+				}
+				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, false, destroyAction));
+
+				PlayStopped?.Invoke(this);
+
+			} else {
+				StopVolumeCrt();
+				StopConductorCrt();
+
+				AudioSource.Stop();
+
+				PlayStopped?.Invoke(this);
+				destroyAction();
+			}
+		}
+
+		#region Quick Play Static Helpers
+
+		/// <summary>
+		/// Play clip quickly as 2D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioClip clip, float volume = 1.0f)
+		{
+			if (Quick2DPlayer == null) {
+				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick2DPlayer.PlayOnEnable = false;
+				Quick2DPlayer.AudioSource.spatialBlend = 0;
+			}
+
+			Quick2DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(Quick2DPlayer); // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play clip quickly as 2D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioPlayerAsset asset)
+		{
+			if (Quick2DPlayer == null) {
+				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick2DPlayer.PlayOnEnable = false;
+				Quick2DPlayer.AudioSource.spatialBlend = 0;
+			}
+
+			Quick2DPlayer.AudioAsset = asset;
+			Quick2DPlayer.Play();
+		}
+
+		/// <summary>
+		/// Play clip quickly as 2D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioClip clip, GameObject gameObject, float volume = 1.0f)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 0;
+			}
+
+			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play asset quickly as 2D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play2DClip(AudioPlayerAsset asset, GameObject gameObject)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 0;
+			}
+
+			player.AudioAsset = asset;
+			player.Play();
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioClip clip, Vector3 position, float volume = 1.0f)
+		{
+			if (Quick3DPlayer == null) {
+				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick3DPlayer.PlayOnEnable = false;
+				Quick3DPlayer.AudioSource.spatialBlend = 1;
+			}
+
+			Quick3DPlayer.transform.position = position;
+			Quick3DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(Quick3DPlayer); // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code.
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioPlayerAsset asset, Vector3 position)
+		{
+			if (Quick3DPlayer == null) {
+				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
+				Quick3DPlayer.PlayOnEnable = false;
+				Quick3DPlayer.AudioSource.spatialBlend = 1;
+			}
+
+			Quick3DPlayer.transform.position = position;
+			Quick3DPlayer.AudioAsset = asset;
+			Quick3DPlayer.Play();
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioClip clip, Vector3 position, GameObject gameObject, float volume = 1.0f)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 1;
+			}
+
+			player.transform.position = position;
+			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+
+			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
+		}
+
+		/// <summary>
+		/// Play clip quickly as 3D sound from code on specified object (will automatically create player on it).
+		/// If you want to control the player, set the player yourself.
+		/// </summary>
+		public static void Play3DClip(AudioPlayerAsset asset, Vector3 position, GameObject gameObject)
+		{
+			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+
+			if (player == null) {
+				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player.PlayOnEnable = false;
+				player.AudioSource.spatialBlend = 1;
+			}
+
+			player.transform.position = position;
+			player.AudioAsset = asset;
+			player.Play();
+		}
+
+		#endregion
+
+		#region Direct Play for Conductors
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioClip clip, bool playAsOneShot, float volume = 1.0f)
+		{
+			if (AudioSource == null)
+				return;
+			if (clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clip;
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clip, volume * m_Volume);
+			} else {
+				AudioSource.volume = volume * m_Volume;
+				AudioSource.Play();
+			}
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioPlayerAsset.ClipWithVolume clipPair, bool playAsOneShot)
+		{
+			if (AudioSource == null)
+				return;
+			if (clipPair.Clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clipPair.Clip;
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
+			} else {
+				AudioSource.volume = clipPair.Volume * m_Volume;
+				AudioSource.Play();
+			}
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectClip(AudioPlayerAsset.ClipWithVolumePitch clipPair, bool playAsOneShot)
+		{
+			if (AudioSource == null)
+				return;
+			if (clipPair.Clip == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.clip = clipPair.Clip;
+
+			if (clipPair.HasPitches) {
+				AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, clipPair.GetRandomPitch());
+			}
+
+			if (playAsOneShot) {
+				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
+			} else {
+				AudioSource.volume = clipPair.Volume * m_Volume;
+				AudioSource.Play();
+			}
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectResource(AudioResource resource)
+		{
+			if (AudioSource == null)
+				return;
+			if (resource == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.resource = resource;
+			AudioSource.Play();
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectResource(AudioPlayerAsset.ResourceWithVolume resourcePair)
+		{
+			if (AudioSource == null)
+				return;
+			if (resourcePair.Resource == null)
+				throw new ArgumentNullException();
+
+			// This bypasses the AudioResource property.
+			AudioSource.resource = resourcePair.Resource;
+			AudioSource.volume = resourcePair.Volume * m_Volume;
+			AudioSource.Play();
+
+			LastPlayTime = Time.time;
+		}
+
+		/// <summary>
+		/// Can be used for animation event to play given <see cref="AudioPlayerAsset"/> without changing this component settings.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayDirectAudioAsset(AudioPlayerAsset asset)
+		{
+			if (AudioSource == null)
+				return;
+
+			AudioAsset = asset;
+			Play();
+		}
+
+		#endregion
+
+		private IEnumerator StartAudioAsset(AudioPlayerAsset audioAsset, float delay)
+		{
+			delay += audioAsset.Delay;
+
+			if (m_AudioAsset.OutputMixer) {
+				AudioSource.outputAudioMixerGroup = m_AudioAsset.OutputMixer;
+			}
+
+			if (delay > 0f) {
+				float waitTime = 0f;
+				while (waitTime < delay) {
+					yield return null;
+
+					if (!IsPaused) {
+						waitTime += Time.deltaTime;
+					}
+				}
+			}
+
+			yield return audioAsset.Play(this, ConductorsFilterContext);
+
+			// Restore the output if we changed it.
+			// Coroutine returns early, sound may still be playing - don't touch the mixer.
+			if (m_AudioAsset.OutputMixer && !m_AudioSource.isPlaying) {
+				AudioSource.outputAudioMixerGroup = m_Output;
+			}
+
+			// Signal that conductor finished playing (which doesn't mean the audio finished).
+			m_ConductorCoroutine = null;
+		}
+
+		private void StopVolumeCrt()
+		{
+			if (m_VolumeCoroutine != null) {
+				AudioSource.volume = Volume;
+
+				StopCoroutine(m_VolumeCoroutine);
+				m_VolumeCoroutine = null;
+			}
+		}
+
+		private void StopConductorCrt()
+		{
+			// Restore the output if we changed it. Even if the coroutine stopped playing long ago.
+			if (m_AudioAsset && m_AudioAsset.OutputMixer) {
+				AudioSource.outputAudioMixerGroup = m_Output;
+			}
+
+			if (m_ConductorCoroutine != null) {
+
+				StopCoroutine(m_ConductorCoroutine);
+				m_ConductorCoroutine = null;
+			}
+		}
+
+		private IEnumerator FadeVolumeCrt(float fadeSeconds, bool fadeIn, System.Action callbackOnFinish = null)
+		{
+			float startTime = Time.time;
+			float startVolume = fadeIn ? 0f : Volume;
+			float endVolume = fadeIn ? Volume : 0f;
+
+			if (m_VolumeCoroutine != null) {
+				startVolume = AudioSource.volume; // Resume from where it left off.
+
+				// Reduce the fade time to what is left.
+				fadeSeconds *= Mathf.Abs(endVolume - AudioSource.volume) / Volume;
+			}
+
+
+			while (Time.time - startTime < fadeSeconds) {
+				AudioSource.volume = Mathf.Lerp(startVolume, endVolume, (Time.time - startTime) / fadeSeconds);
+				yield return null;
+			}
+
+			StopVolumeCrt();
+			if (!fadeIn && !IsPaused) {
+				StopConductorCrt();
+			}
+
+			callbackOnFinish?.Invoke();
+		}
+
+		protected virtual void Update()
+		{
+			if (m_ShouldPlayRepeating && m_ConductorCoroutine == null && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource) {
+
+				if (m_AudioSource.isPlaying != m_LastIsPlayingForRepeatInterval) {
+					if (!m_AudioSource.isPlaying) {
+						m_NextPlayTime = Time.time + m_RepeatIntervalRange.NextValue();
+					}
+					m_LastIsPlayingForRepeatInterval = m_AudioSource.isPlaying;
+				}
+
+				if (!m_AudioSource.isPlaying && Time.time >= m_NextPlayTime) {
+					Play();
+				}
+
+			} else if (!m_ShouldPlayRepeating) {
+				m_LastIsPlayingForRepeatInterval = false;
+			}
+		}
+
+		private void SetupAudioSource()
+		{
+			if (m_AudioSource && (m_Template == null || m_Template.gameObject != gameObject)) {
+				DestroyImmediate(m_AudioSource);
+			}
+
+			// If the template is component on this object, use it directly.
+			if (m_Template && m_Template.gameObject == gameObject) {
+				m_AudioSource = m_Template;
+			} else {
+				m_AudioSource = gameObject.AddComponent<AudioSource>();
+			}
+
+			m_AudioSource.playOnAwake = false; // Will be handled by us.
+			m_AudioSource.resource = m_AudioResource;
+			m_AudioSource.outputAudioMixerGroup = m_Output ?? m_Template?.outputAudioMixerGroup ?? m_AudioSource.outputAudioMixerGroup;
+			m_Output = m_AudioSource.outputAudioMixerGroup; // In case we're using template with it's own mixer.
+			m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
+			m_AudioSource.volume = m_Volume;
+			m_AudioSource.mute = m_Mute;
+
+			if (m_Template && m_Template.gameObject != gameObject) {
+				CopyAudioSourceDetails(m_AudioSource, m_Template);
+			}
+		}
+
+		public static void CopyAudioSource(AudioSource destination, AudioSource source)
+		{
+			destination.playOnAwake = source.playOnAwake;
+			destination.resource = source.resource;
+			destination.outputAudioMixerGroup = source.outputAudioMixerGroup;
+			destination.loop = source.loop;
+			destination.volume = source.volume;
+
+			CopyAudioSource(destination, source);
+		}
+
+		public static void CopyAudioSourceDetails(AudioSource destination, AudioSource source)
+		{
+			destination.bypassEffects = source.bypassEffects;
+			destination.bypassListenerEffects = source.bypassListenerEffects;
+			destination.bypassReverbZones = source.bypassReverbZones;
+			destination.priority = source.priority;
+			destination.pitch = source.pitch;
+			destination.panStereo = source.panStereo;
+			destination.spatialBlend = source.spatialBlend;
+			destination.spatializePostEffects = source.spatializePostEffects;
+			destination.reverbZoneMix = source.reverbZoneMix;
+
+			destination.dopplerLevel = source.dopplerLevel;
+			destination.minDistance = source.minDistance;
+			destination.maxDistance = source.maxDistance;
+			destination.SetCustomCurve(AudioSourceCurveType.CustomRolloff, source.GetCustomCurve(AudioSourceCurveType.CustomRolloff));
+			destination.SetCustomCurve(AudioSourceCurveType.SpatialBlend, source.GetCustomCurve(AudioSourceCurveType.SpatialBlend));
+			destination.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, source.GetCustomCurve(AudioSourceCurveType.ReverbZoneMix));
+			destination.SetCustomCurve(AudioSourceCurveType.Spread, source.GetCustomCurve(AudioSourceCurveType.Spread));
+			destination.rolloffMode = source.rolloffMode; // Because changing the curve changes this property to custom.
+		}
+	}
+}
