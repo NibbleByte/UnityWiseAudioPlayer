@@ -59,6 +59,7 @@ namespace DevLocker.Audio.Editor
 
 		private AudioListener m_AudioListener;
 
+		[MenuItem("Window/Audio/Wise Audio Monitor")]
 		public static void ShowMonitor()
 		{
 			var window = GetWindow<AudioSourcePlayerMonitorWindow>(false, "Audio Monitor");
@@ -116,7 +117,7 @@ namespace DevLocker.Audio.Editor
 				Time = Time.time,
 
 				Player = player,
-				Resource = player.AudioResource ?? player.AudioSource?.resource,
+				Resource = player.AudioReference.AudioResource ?? player.AudioSource?.resource,
 				MixerGroup = player.Output,
 				Template = player.Template,
 

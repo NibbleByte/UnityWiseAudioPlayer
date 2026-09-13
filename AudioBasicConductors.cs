@@ -330,7 +330,7 @@ namespace DevLocker.Audio.Conductors
 			if (player == null)
 				return;
 
-			player.AudioAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
+			player.AudioReference.AudioAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
 
 		}
 	}

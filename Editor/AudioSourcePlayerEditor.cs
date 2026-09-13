@@ -37,6 +37,75 @@ namespace DevLocker.Audio.Editor
 		}
 	}
 
+	[CustomPropertyDrawer(typeof(AudioSourcePlayer.AudioReferenceProperty))]
+	public class AudioReferencePropertyDrawer : PropertyDrawer
+	{
+		private bool m_UseAudioAsset = true;
+
+		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+		{
+			return EditorGUIUtility.singleLineHeight;
+		}
+
+		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+		{
+			label = EditorGUI.BeginProperty(position, label, property);
+
+			position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+
+			var audioAssetProp = property.FindPropertyRelative("m_AudioAsset");
+			var audioResourceProp = property.FindPropertyRelative("m_AudioResource");
+
+			// Calculate rect for configuration button
+			var buttonRect = position;
+			var popupStyle = new GUIStyle("PaneOptions") { imagePosition = ImagePosition.ImageOnly };
+			buttonRect.yMin += popupStyle.margin.top + 1f;
+			buttonRect.width = popupStyle.fixedWidth + popupStyle.margin.right;
+			buttonRect.height = EditorGUIUtility.singleLineHeight;
+			position.xMin = buttonRect.xMax;
+
+			if (audioAssetProp.objectReferenceValue || audioResourceProp.objectReferenceValue) {
+				m_UseAudioAsset = audioResourceProp.objectReferenceValue == null;
+			}
+
+			using (var check = new EditorGUI.ChangeCheckScope()) {
+				var newPopupIndex = EditorGUI.Popup(buttonRect, new GUIContent(""), m_UseAudioAsset ? 0 : 1, new [] { new GUIContent("Use Audio Asset"), new GUIContent("Use Audio Resource") }, popupStyle);
+				if (check.changed) {
+					m_UseAudioAsset = newPopupIndex == 0;
+
+					// Clear both in case of multi-selection.
+					audioAssetProp.objectReferenceValue = null;
+					audioResourceProp.objectReferenceValue = null;
+				}
+			}
+
+			if (m_UseAudioAsset) {
+				EditorGUI.BeginChangeCheck();
+
+				EditorGUI.PropertyField(position, audioAssetProp, GUIContent.none);
+
+				// Needed for multi-selection with different reference types used
+				if (EditorGUI.EndChangeCheck()) {
+					audioResourceProp.objectReferenceValue = null;
+					m_UseAudioAsset = true;
+				}
+
+			} else {
+				EditorGUI.BeginChangeCheck();
+
+				EditorGUI.PropertyField(position, audioResourceProp, GUIContent.none);
+
+				// Needed for multi-selection with different reference types used
+				if (EditorGUI.EndChangeCheck()) {
+					audioAssetProp.objectReferenceValue = null;
+					m_UseAudioAsset = false;
+				}
+			}
+
+			EditorGUI.EndProperty();
+		}
+	}
+
 	[CustomEditor(typeof(AudioSourcePlayer), true)]
 	[CanEditMultipleObjects]
 	public class AudioSourcePlayerEditor : UnityEditor.Editor
@@ -57,36 +126,15 @@ namespace DevLocker.Audio.Editor
 
 			DrawScriptProperty();
 
-			var audioResourceProperty = serializedObject.FindProperty("m_AudioResource");
-			var audioAssetProperty = serializedObject.FindProperty("m_AudioAsset");
-
-			EditorGUI.BeginChangeCheck();
-			EditorGUILayout.PropertyField(audioResourceProperty);
-			if (EditorGUI.EndChangeCheck()) {
-				audioAssetProperty.objectReferenceValue = null;
-				serializedObject.ApplyModifiedProperties();
-				serializedObject.Update();
-			}
-
-			EditorGUI.BeginChangeCheck();
-			EditorGUILayout.PropertyField(audioAssetProperty);
-			if (EditorGUI.EndChangeCheck()) {
-				audioResourceProperty.objectReferenceValue = null;
-				serializedObject.ApplyModifiedProperties();
-				serializedObject.Update();
-			}
-
-			EditorGUILayout.Space();
-
 			EditorGUI.BeginChangeCheck();
 
 			var repeatPattern = (AudioSourcePlayer.RepeatPatternType)serializedObject.FindProperty("m_RepeatPattern").intValue;
 
 			// Will draw any child properties without [HideInInspector] attribute.
 			if (repeatPattern == AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
-				DrawPropertiesExcluding(serializedObject, "m_Script", "m_AudioResource", "m_AudioAsset");
+				DrawPropertiesExcluding(serializedObject, "m_Script");
 			} else {
-				DrawPropertiesExcluding(serializedObject, "m_Script", "m_AudioResource", "m_AudioAsset", "m_RepeatIntervalRange");
+				DrawPropertiesExcluding(serializedObject, "m_Script", "m_RepeatIntervalRange");
 			}
 
 			if (EditorGUI.EndChangeCheck()) {

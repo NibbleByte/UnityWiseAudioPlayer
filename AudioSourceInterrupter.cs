@@ -73,10 +73,12 @@ namespace DevLocker.Audio
 					if (Array.IndexOf(Players, player) != -1)
 						continue;
 
-					if (Array.IndexOf(Resources, player.AudioResource) != -1) {
+					AudioResource resource = player.AudioReference.AudioResource;
+
+					if (resource && Array.IndexOf(Resources, resource) != -1) {
 						player.Stop();
 
-					} else if (!string.IsNullOrWhiteSpace(ResourceNameContains) && player.AudioResource && player.AudioResource.name.Contains(ResourceNameContains, StringComparison.OrdinalIgnoreCase)) {
+					} else if (!string.IsNullOrWhiteSpace(ResourceNameContains) && resource && resource.name.Contains(ResourceNameContains, StringComparison.OrdinalIgnoreCase)) {
 						player.Stop();
 					}
 				}

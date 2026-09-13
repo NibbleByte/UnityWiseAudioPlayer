@@ -20,7 +20,7 @@ namespace DevLocker.Audio.Editor
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			if (property.objectReferenceValue == null) {
-				EditorGUI.PropertyField(position, property);
+				EditorGUI.PropertyField(position, property, label);
 				return;
 			}
 
@@ -31,7 +31,7 @@ namespace DevLocker.Audio.Editor
 			var playBtnRect = new Rect(position.position, new Vector2(PLAY_BTN_WIDTH, EditorGUIUtility.singleLineHeight));
 			playBtnRect.x += refRect.width + PADDING;
 
-			EditorGUI.PropertyField(refRect, property);
+			EditorGUI.PropertyField(refRect, property, label);
 
 			if (AudioEditorUtils.IsPreviewClipPlaying()) {
 				if (GUI.Button(playBtnRect, AudioEditorUtils.StopIconContent, AudioEditorUtils.PlayStopButtonStyle)) {

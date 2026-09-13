@@ -20,6 +20,31 @@ namespace DevLocker.Audio
 			RepeatInterval = 4,
 		}
 
+		/// <summary>
+		/// Holds <see cref="AudioResource"/> and <see cref="AudioPlayerAsset"/> together so user can select any type of asset.
+		/// Only one member should have a valid reference at all times.
+		/// </summary>
+		[Serializable]
+		public struct AudioReferenceProperty
+		{
+			[SerializeField] private AudioResource m_AudioResource;
+			[SerializeField] private AudioPlayerAsset m_AudioAsset;
+
+			public AudioReferenceProperty(AudioResource resource) { m_AudioResource = resource; m_AudioAsset = null; }
+			public AudioReferenceProperty(AudioPlayerAsset asset) { m_AudioAsset = asset; m_AudioResource = null; }
+
+			public AudioResource AudioResource {
+				get => m_AudioResource;
+				set { m_AudioResource = value; m_AudioAsset = null; }
+			}
+			public AudioPlayerAsset AudioAsset {
+				get => m_AudioAsset;
+				set { m_AudioAsset = value; m_AudioAsset = null; }
+			}
+
+			public bool HasValidReference => m_AudioResource != null || m_AudioAsset != null;
+		}
+
 		[Serializable]
 		public struct IntervalRange
 		{
@@ -51,29 +76,14 @@ namespace DevLocker.Audio
 		public static event PlayerEventHandler PlayStopped;
 
 		/// <summary>
-		/// Sets or gets resource to the audio source.
+		/// Gets or sets the used audio reference.
 		/// NOTE: Don't use from conductors!!! Use <see cref="PlayDirectResource(AudioResource)"/> instead.
 		/// </summary>
-		public AudioResource AudioResource {
-			get => m_AudioResource;
+		public AudioReferenceProperty AudioReference {
+			get => m_AudioReference;
 			set {
-
-				// NOTE: Don't use from conductors!!!
-				m_AudioAsset = null;
-				m_AudioResource = value;
-
-				if (m_AudioSource) m_AudioSource.resource = value;
-			}
-		}
-
-		public AudioPlayerAsset AudioAsset
-		{
-			get => m_AudioAsset;
-			set {
-				m_AudioAsset = value;
-				m_AudioResource = null;
-
-				if (m_AudioSource) m_AudioSource.resource = null;
+				m_AudioReference = value;
+				if (m_AudioSource) m_AudioSource.resource = m_AudioReference.AudioResource;
 			}
 		}
 
@@ -177,12 +187,8 @@ namespace DevLocker.Audio
 		public static IReadOnlyList<AudioSourcePlayer> ActivePlayersRegister => m_ActivePlayersRegister.AsReadOnly();
 
 		[SerializeField]
-		[Tooltip("Resource to play")]
-		private AudioResource m_AudioResource;
-
-		[Tooltip("Custom audio assets provide more options on how to play your audio")]
-		[SerializeField]
-		private AudioPlayerAsset m_AudioAsset;
+		[Tooltip("Audio reference to play - standard Unity audio asset or customizable Audio Player Asset.")]
+		private AudioReferenceProperty m_AudioReference;
 
 
 		[SerializeField]
@@ -248,7 +254,7 @@ namespace DevLocker.Audio
 			// Restore in case it was changed by audio asset and coroutine was stopped from OnDisable().
 			AudioSource.outputAudioMixerGroup = m_Output ?? AudioSource.outputAudioMixerGroup;
 
-			if (PlayOnEnable && (AudioResource || AudioAsset)) {
+			if (PlayOnEnable && AudioReference.HasValidReference) {
 				Play();
 			}
 		}
@@ -311,8 +317,8 @@ namespace DevLocker.Audio
 			StopVolumeCrt();
 			StopConductorCrt();
 
-			if (m_AudioAsset != null) {
-				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(AudioAsset, delay));
+			if (m_AudioReference.AudioAsset != null) {
+				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(m_AudioReference.AudioAsset, delay));
 				PlayStarted?.Invoke(this);
 			} else {
 				if (delay <= 0f) {
@@ -508,7 +514,7 @@ namespace DevLocker.Audio
 				Quick2DPlayer.AudioSource.spatialBlend = 0;
 			}
 
-			Quick2DPlayer.AudioAsset = asset;
+			Quick2DPlayer.AudioReference = new AudioReferenceProperty(asset);
 			Quick2DPlayer.Play();
 		}
 
@@ -545,7 +551,7 @@ namespace DevLocker.Audio
 				player.AudioSource.spatialBlend = 0;
 			}
 
-			player.AudioAsset = asset;
+			player.AudioReference = new AudioReferenceProperty(asset);
 			player.Play();
 		}
 
@@ -580,7 +586,7 @@ namespace DevLocker.Audio
 			}
 
 			Quick3DPlayer.transform.position = position;
-			Quick3DPlayer.AudioAsset = asset;
+			Quick3DPlayer.AudioReference = new AudioReferenceProperty(asset);
 			Quick3DPlayer.Play();
 		}
 
@@ -619,7 +625,7 @@ namespace DevLocker.Audio
 			}
 
 			player.transform.position = position;
-			player.AudioAsset = asset;
+			player.AudioReference = new AudioReferenceProperty(asset);
 			player.Play();
 		}
 
@@ -747,7 +753,7 @@ namespace DevLocker.Audio
 			if (AudioSource == null)
 				return;
 
-			AudioAsset = asset;
+			AudioReference = new AudioReferenceProperty(asset);
 			Play();
 		}
 
@@ -757,8 +763,8 @@ namespace DevLocker.Audio
 		{
 			delay += audioAsset.Delay;
 
-			if (m_AudioAsset.OutputMixer) {
-				AudioSource.outputAudioMixerGroup = m_AudioAsset.OutputMixer;
+			if (m_AudioReference.AudioAsset.OutputMixer) {
+				AudioSource.outputAudioMixerGroup = m_AudioReference.AudioAsset.OutputMixer;
 			}
 
 			if (delay > 0f) {
@@ -776,7 +782,7 @@ namespace DevLocker.Audio
 
 			// Restore the output if we changed it.
 			// Coroutine returns early, sound may still be playing - don't touch the mixer.
-			if (m_AudioAsset.OutputMixer && !m_AudioSource.isPlaying) {
+			if (m_AudioReference.AudioAsset.OutputMixer && !m_AudioSource.isPlaying) {
 				AudioSource.outputAudioMixerGroup = m_Output;
 			}
 
@@ -797,7 +803,7 @@ namespace DevLocker.Audio
 		private void StopConductorCrt()
 		{
 			// Restore the output if we changed it. Even if the coroutine stopped playing long ago.
-			if (m_AudioAsset && m_AudioAsset.OutputMixer) {
+			if (m_AudioReference.AudioAsset && m_AudioReference.AudioAsset.OutputMixer) {
 				AudioSource.outputAudioMixerGroup = m_Output;
 			}
 
@@ -869,7 +875,7 @@ namespace DevLocker.Audio
 			}
 
 			m_AudioSource.playOnAwake = false; // Will be handled by us.
-			m_AudioSource.resource = m_AudioResource;
+			m_AudioSource.resource = m_AudioReference.AudioResource;
 			m_AudioSource.outputAudioMixerGroup = m_Output ?? m_Template?.outputAudioMixerGroup ?? m_AudioSource.outputAudioMixerGroup;
 			m_Output = m_AudioSource.outputAudioMixerGroup; // In case we're using template with it's own mixer.
 			m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
