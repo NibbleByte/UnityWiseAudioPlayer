@@ -21,6 +21,7 @@ This audio framework revolves around the `AudioSourcePlayer` component and the `
 
 ### AudioSourcePlayer
 ![AudioSourcePlayer component](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/AudioSourcePlayerShot.png)
+
 Replace all your Unity `AudioSource` components with `AudioSourcePlayer`, which gives you a similar interface to use. One important difference is that you can specify an `AudioPlayerAsset` instead of an `AudioClip` to use.
 
 `AudioSourcePlayer` doesn't include all of the `AudioSource`'s details and curves. Instead, you can specify an `AudioSource` template prefab to copy the details from, giving you an easy way to reuse them.
@@ -31,6 +32,7 @@ Make sure all your sounds are played through the `AudioSourcePlayer` component o
 
 ### AudioPlayerAsset
 ![AudioPlayerAsset scriptable object](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/AudioPlayerAssetShot.png)
+
 The `AudioPlayerAsset` serves as an audio proxy that lets you easily change what sounds should be played. Having sound definitions spread out across separate asset files makes collaborating much easier, and managing them is done through the well-known Unity Project window interface. Your programmers can link the asset in the right prefab, while your sound designer can tweak the asset itself without knowing exactly where it's played from.
 
 The asset offers you a list of `Conductors`. Each conductor has a filter that checks whether it should be played, and only the first allowed one is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
