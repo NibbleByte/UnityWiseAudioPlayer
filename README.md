@@ -53,13 +53,13 @@ Some conductors need to persist their state in order to work correctly. Example:
 As the project grows you'll need to debug the played sounds at some point. You can use the "Audio Monitor" editor window, found at "Window / Audio / Wise Audio Monitor" in the menu. It shows what sounds were played, when, by whom, distance to the listener, and other details.
 
 ## Installation
-* [Asset Store](???)
-* [OpenUPM](???) support:
+* [Asset Store](https://u3d.as/4aZe)
+* [OpenUPM](https://openupm.com/packages/devlocker.audio.wiseaudioplayer) support:
 ```
 npm install -g openupm-cli
 openupm add devlocker.audio.wiseaudioplayer
 ```
-[![openupm](???)
+[![openupm](https://img.shields.io/npm/v/devlocker.audio.wiseaudioplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/devlocker.audio.wiseaudioplayer/)
 
 * GitHub UPM package - merge this into your `Packages/manifest.json`
 ```
