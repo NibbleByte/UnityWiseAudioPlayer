@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 792939c690b01f44c82bb350f7de1e97, type: 3}
+  m_Name: RotateBlocks_AudioAsset
+  m_EditorClassIdentifier: 
+  StateStorageLocation: 0
+  LoopRepeat: 0
+  RepeatIntervalRange:
+    MinSeconds: 0
+    MaxSeconds: 0
+  Delay: 0
+  OutputMixer: {fileID: 0}
+  Conductors:
+  - Conductor:
+      rid: 8526195400101331320
+    Filters:
+    - rid: 8526195423432933557
+  references:
+    version: 2
+    RefIds:
+    - rid: 8526195400101331320
+      type: {class: PlayCollectionAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      data:
+        StopPlayingSound: 0
+        Mode: 2
+        AvoidRepeatingLast: 2
+        AudioClips:
+        - Clip: {fileID: 8300000, guid: 863bdb6e0f1ebf14f954fa4849f4fe9f, type: 3}
+          VolumeDB: 0
+        - Clip: {fileID: 8300000, guid: 1cc5f8b43d9bd334888409ea52348322, type: 3}
+          VolumeDB: 0
+        - Clip: {fileID: 8300000, guid: 59da62157b20fc14197ff31f9a8d6151, type: 3}
+          VolumeDB: -5
+    - rid: 8526195423432933557
+      type: {class: CooldownFilter, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      data:
+        CooldownSeconds: 0.1

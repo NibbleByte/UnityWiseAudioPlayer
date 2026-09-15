@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 792939c690b01f44c82bb350f7de1e97, type: 3}
+  m_Name: FairyChase_AudioAsset
+  m_EditorClassIdentifier: 
+  StateStorageLocation: 0
+  LoopRepeat: 0
+  RepeatIntervalRange:
+    MinSeconds: 0
+    MaxSeconds: 0
+  Delay: 0
+  OutputMixer: {fileID: 0}
+  Conductors:
+  - Conductor:
+      rid: 8526195024085123079
+    Filters: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 8526195024085123079
+      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      data:
+        StopPlayingSound: 0
+        AudioClip:
+          Clip: {fileID: 8300000, guid: c4c4861d067ce984a9ef5b7b22f98947, type: 3}
+          VolumeDB: 0
+          Pitches: 
