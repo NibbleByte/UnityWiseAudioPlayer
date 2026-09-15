@@ -49,6 +49,7 @@ Some conductors need to persist their state in order to work correctly. Example:
 
 ### Audio Monitor
 ![Audio Monitor editor window](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/AudioMonitorShot.png)
+
 As the project grows you'll need to debug the played sounds at some point. You can use the "Audio Monitor" editor window, found at "Window / Audio / Wise Audio Monitor" in the menu. It shows what sounds were played, when, by whom, distance to the listener, and other details.
 
 ## Installation
