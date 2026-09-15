@@ -17,7 +17,7 @@
         {
           "displayName": "Sample Usage",
           "description": "Sample scene with sounds that showcases the wise audio player.",
-          "path": "SampleUsage"
+          "path": "Samples~/SampleUsage"
         }
     ]
 }

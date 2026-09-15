@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 792939c690b01f44c82bb350f7de1e97, type: 3}
+  m_Name: MatchBlock_AudioAsset
+  m_EditorClassIdentifier: 
+  StateStorageLocation: 1
+  LoopRepeat: 0
+  RepeatIntervalRange:
+    MinSeconds: 0
+    MaxSeconds: 0
+  Delay: 0
+  OutputMixer: {fileID: 0}
+  Conductors:
+  - Conductor:
+      rid: 8526194947531473045
+    Filters: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 8526194947531473045
+      type: {class: PlayPitchSequenceConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      data:
+        AudioClip:
+          Clip: {fileID: 8300000, guid: 17b360976673bf44da7edc4b0291111c, type: 3}
+          VolumeDB: 0
+        ResetOnSequenceEnd: 0
+        ResetAfterSeconds: 1
+        PitchSequence: 0000000064000000c80000002c01000090010000f401000058020000bc0200002003000084030000e80300004c040000b0040000
