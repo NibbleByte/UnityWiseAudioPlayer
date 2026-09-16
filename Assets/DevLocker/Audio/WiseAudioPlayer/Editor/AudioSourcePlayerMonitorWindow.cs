@@ -73,8 +73,7 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayPaused += OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused += OnPlayUnpaused;
 
-			UIAudioEffects.PlayedAudio += OnUIAudioEffectsPlayed;
-
+			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 		}
 
@@ -84,8 +83,6 @@ namespace DevLocker.Audio.Editor
 			AudioSourcePlayer.PlayStopped -= OnPlayStopped;
 			AudioSourcePlayer.PlayPaused -= OnPlayPaused;
 			AudioSourcePlayer.PlayUnpaused -= OnPlayUnpaused;
-
-			UIAudioEffects.PlayedAudio -= OnUIAudioEffectsPlayed;
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -130,44 +127,6 @@ namespace DevLocker.Audio.Editor
 				SpatialBlend = player.SpatialBlend,
 
 				ListenerDistance = m_AudioListener ? Vector3.Distance(m_AudioListener.transform.position, player.transform.position) : -1f,
-			};
-
-			m_Actions.Add(action);
-
-			if (m_LogActions) {
-				LogAction(action);
-			}
-
-			if (m_Actions.Count > m_EntriesLimit) {
-				m_Actions.RemoveAt(0);
-			}
-
-			Repaint();
-		}
-
-		private void OnUIAudioEffectsPlayed(UIAudioEffects uiAudioEffects, AudioResource playedResource)
-		{
-			if (!m_ListenForEvents)
-				return;
-
-			var action = new ActionEntry() {
-				Type = ActionType.Play,
-				Time = Time.time,
-
-				Player = uiAudioEffects,
-				Resource = playedResource,
-				MixerGroup = uiAudioEffects.AudioSource?.outputAudioMixerGroup,
-				Template = uiAudioEffects.Template?.GetComponent<AudioSource>(),
-
-				Mute = false,
-				PlayOnEnable = false,
-
-				RepeatPattern = AudioSourcePlayer.RepeatPatternType.Once,
-				Volume = uiAudioEffects.AudioSource?.volume ?? 1f,
-				Pitch = uiAudioEffects.AudioSource?.pitch ?? 1f,
-				SpatialBlend = uiAudioEffects.AudioSource?.spatialBlend ?? 0f,
-
-				ListenerDistance = -1f,
 			};
 
 			m_Actions.Add(action);

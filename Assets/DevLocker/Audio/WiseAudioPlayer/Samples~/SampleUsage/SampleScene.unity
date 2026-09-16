@@ -805,14 +805,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.UIAudioEffects
   InteractableMode: 1
   Template: {fileID: 0}
-  SubmitAudio: {fileID: 8300000, guid: e22f0ac9a536b2f4f825672377a20019, type: 3}
-  PointerClickAudio: {fileID: 8300000, guid: e22f0ac9a536b2f4f825672377a20019, type: 3}
-  PointerDownAudio: {fileID: 0}
-  PointerUpAudio: {fileID: 0}
-  PointerEnterAudio: {fileID: 8300000, guid: 8b9a4d8e839dda84b825051a77f12f44, type: 3}
-  PointerExitAudio: {fileID: 0}
-  SelectAudio: {fileID: 0}
-  DeselectAudio: {fileID: 0}
+  SubmitAudio:
+    m_AudioResource: {fileID: 8300000, guid: e22f0ac9a536b2f4f825672377a20019, type: 3}
+    m_AudioAsset: {fileID: 0}
+  PointerClickAudio:
+    m_AudioResource: {fileID: 8300000, guid: e22f0ac9a536b2f4f825672377a20019, type: 3}
+    m_AudioAsset: {fileID: 0}
+  PointerDownAudio:
+    m_AudioResource: {fileID: 0}
+    m_AudioAsset: {fileID: 0}
+  PointerUpAudio:
+    m_AudioResource: {fileID: 0}
+    m_AudioAsset: {fileID: 0}
+  PointerEnterAudio:
+    m_AudioResource: {fileID: 8300000, guid: 8b9a4d8e839dda84b825051a77f12f44, type: 3}
+    m_AudioAsset: {fileID: 0}
+  PointerExitAudio:
+    m_AudioResource: {fileID: 0}
+    m_AudioAsset: {fileID: 0}
+  SelectAudio:
+    m_AudioResource: {fileID: 0}
+    m_AudioAsset: {fileID: 0}
+  DeselectAudio:
+    m_AudioResource: {fileID: 0}
+    m_AudioAsset: {fileID: 0}
 --- !u!114 &180132115
 MonoBehaviour:
   m_ObjectHideFlags: 0

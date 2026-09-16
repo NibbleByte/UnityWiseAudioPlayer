@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
-using System.Collections.Generic;
 
 namespace DevLocker.Audio
 {
@@ -43,6 +43,20 @@ namespace DevLocker.Audio
 			}
 
 			public bool HasValidReference => m_AudioResource != null || m_AudioAsset != null;
+
+			// Officially only one reference should be filled, but editor and serialization may bypass this logic.
+			// In that case prefer using the AudioResource as that is the one being displayed in the editor.
+			public bool IsAmbiguous => m_AudioAsset && m_AudioResource;
+
+			public bool OnValidate(object context)
+			{
+				if (IsAmbiguous) {
+					Debug.LogWarning($"[Audio] {nameof(AudioReferenceProperty)} reference has both references set: \"{m_AudioResource}\" and \"{m_AudioAsset}\" for \"{context}\"", context as UnityEngine.Object);
+					return false;
+				}
+
+				return true;
+			}
 		}
 
 		[Serializable]
@@ -82,6 +96,8 @@ namespace DevLocker.Audio
 		public AudioReferenceProperty AudioReference {
 			get => m_AudioReference;
 			set {
+				value.OnValidate(this);
+
 				m_AudioReference = value;
 				if (m_AudioSource) m_AudioSource.resource = m_AudioReference.AudioResource;
 			}
@@ -249,10 +265,12 @@ namespace DevLocker.Audio
 		{
 			m_ActivePlayersRegister.Add(this);
 
-			AudioSource.enabled = true;
+			if (m_AudioSource) {
+				m_AudioSource.enabled = true;
 
-			// Restore in case it was changed by audio asset and coroutine was stopped from OnDisable().
-			AudioSource.outputAudioMixerGroup = m_Output ?? AudioSource.outputAudioMixerGroup;
+				// Restore in case it was changed by audio asset and coroutine was stopped from OnDisable().
+				m_AudioSource.outputAudioMixerGroup = m_Output ?? m_AudioSource.outputAudioMixerGroup;
+			}
 
 			if (PlayOnEnable && AudioReference.HasValidReference) {
 				Play();
@@ -263,7 +281,9 @@ namespace DevLocker.Audio
 		{
 			m_ActivePlayersRegister.Remove(this);
 
-			AudioSource.enabled = false;
+			if (m_AudioSource) {
+				m_AudioSource.enabled = false;
+			}
 
 			m_ConductorCoroutine = null;
 		}
@@ -271,6 +291,8 @@ namespace DevLocker.Audio
 		protected virtual void OnValidate()
 		{
 #if UNITY_EDITOR
+			AudioReference.OnValidate(this);
+
 			if (InterruptionFadeDuration < 0f) {
 				InterruptionFadeDuration = 0f;
 				UnityEditor.EditorUtility.SetDirty(this);
@@ -307,6 +329,35 @@ namespace DevLocker.Audio
 		public virtual void PlayDelayed(float delaySeconds)
 		{
 			PlayImpl(delaySeconds);
+		}
+
+		/// <summary>
+		/// Can be used for animation event to play given <see cref="AudioPlayerAsset"/>.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayAudioAsset(AudioPlayerAsset asset)
+		{
+			if (AudioSource == null)
+				return;
+
+			AudioReference = new AudioReferenceProperty(asset);
+			Play();
+		}
+
+		/// <summary>
+		/// Can be used for animation event to play given <see cref="AudioReferenceProperty"/>.
+		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+		/// </summary>
+		public virtual void PlayAudioReference(AudioReferenceProperty audioReference)
+		{
+			if (AudioSource == null)
+				return;
+
+			audioReference.OnValidate(this);
+
+			// Assign and play normally so it shows up in the Audio Monitor.
+			AudioReference = audioReference;
+			Play();
 		}
 
 		private void PlayImpl(float delay)
@@ -742,19 +793,6 @@ namespace DevLocker.Audio
 			AudioSource.Play();
 
 			LastPlayTime = Time.time;
-		}
-
-		/// <summary>
-		/// Can be used for animation event to play given <see cref="AudioPlayerAsset"/> without changing this component settings.
-		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
-		/// </summary>
-		public virtual void PlayDirectAudioAsset(AudioPlayerAsset asset)
-		{
-			if (AudioSource == null)
-				return;
-
-			AudioReference = new AudioReferenceProperty(asset);
-			Play();
 		}
 
 		#endregion
