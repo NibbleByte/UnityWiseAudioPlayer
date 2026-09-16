@@ -31,61 +31,46 @@ namespace DevLocker.Audio
 		[Header("Template Overrides")]
 
 		[Tooltip("Submit is called on pressing <Enter> or gamepad <A>, but NOT on pointer clicks.")]
-		public AudioResource SubmitAudio;
+		public AudioSourcePlayer.AudioReferenceProperty SubmitAudio;
 		[Tooltip("OnClick is called on only for pointer clicks, NOT on pressing <Enter> or gamepad <A>.")]
-		public AudioResource PointerClickAudio;
+		public AudioSourcePlayer.AudioReferenceProperty PointerClickAudio;
 
-		public AudioResource PointerDownAudio;
-		public AudioResource PointerUpAudio;
-		public AudioResource PointerEnterAudio;
-		public AudioResource PointerExitAudio;
+		public AudioSourcePlayer.AudioReferenceProperty PointerDownAudio;
+		public AudioSourcePlayer.AudioReferenceProperty PointerUpAudio;
+		public AudioSourcePlayer.AudioReferenceProperty PointerEnterAudio;
+		public AudioSourcePlayer.AudioReferenceProperty PointerExitAudio;
 
-		public AudioResource SelectAudio;
-		public AudioResource DeselectAudio;
+		public AudioSourcePlayer.AudioReferenceProperty SelectAudio;
+		public AudioSourcePlayer.AudioReferenceProperty DeselectAudio;
 
-		public delegate void UIAudioEffectsEventHandler(UIAudioEffects uiAudioEffects, AudioResource playedResource);
-		public static event UIAudioEffectsEventHandler PlayedAudio;
-
+		public AudioSourcePlayer AudioPlayer { get; private set; }
 		public AudioSource AudioSource { get; private set; }
 		private Selectable m_Selectable;
 
 		void Awake()
 		{
+			AudioPlayer = GetComponent<AudioSourcePlayer>() ?? gameObject.AddComponent<AudioSourcePlayer>();
+
 			if (Template) {
 
 				var templateSource = Template.GetComponent<AudioSource>();
 				if (templateSource) {
-					AudioSource = GetComponent<AudioSource>(); // Can use this as template
-
-					if (AudioSource == null) {
-						AudioSource = gameObject.AddComponent<AudioSource>();
-						//AudioSource.spatialBlend = 0f;  // Will be copied below.
-					}
-
-					AudioSource.playOnAwake = false;
-					AudioSource.loop = false;
-					AudioSource.outputAudioMixerGroup = templateSource.outputAudioMixerGroup;
-					AudioSource.volume = templateSource.volume;
-
-					AudioSourcePlayer.CopyAudioSourceDetails(AudioSource, templateSource);
+					AudioPlayer.Template = templateSource;
+				} else {
+					AudioPlayer.AudioSource.spatialBlend = 0f;  // Make it 2D
 				}
 
-				SubmitAudio = SubmitAudio ?? Template.SubmitAudio;
-				PointerClickAudio = PointerClickAudio ?? Template.PointerClickAudio;
-				PointerDownAudio = PointerDownAudio ?? Template.PointerDownAudio;
-				PointerUpAudio = PointerUpAudio ?? Template.PointerUpAudio;
-				PointerEnterAudio = PointerEnterAudio ?? Template.PointerEnterAudio;
-				PointerExitAudio = PointerExitAudio ?? Template.PointerExitAudio;
-				SelectAudio = SelectAudio ?? Template.SelectAudio;
-				DeselectAudio = DeselectAudio ?? Template.DeselectAudio;
+				SubmitAudio = SubmitAudio.HasValidReference ? SubmitAudio : Template.SubmitAudio;
+				PointerClickAudio = PointerClickAudio.HasValidReference ? PointerClickAudio : Template.PointerClickAudio;
+				PointerDownAudio = PointerDownAudio.HasValidReference ? PointerDownAudio : Template.PointerDownAudio;
+				PointerUpAudio = PointerUpAudio.HasValidReference ? PointerUpAudio : Template.PointerUpAudio;
+				PointerEnterAudio = PointerEnterAudio.HasValidReference ? PointerEnterAudio : Template.PointerEnterAudio;
+				PointerExitAudio = PointerExitAudio.HasValidReference ? PointerExitAudio : Template.PointerExitAudio;
+				SelectAudio = SelectAudio.HasValidReference ? SelectAudio : Template.SelectAudio;
+				DeselectAudio = DeselectAudio.HasValidReference ? DeselectAudio : Template.DeselectAudio;
 
 			} else {
-				AudioSource = GetComponent<AudioSource>(); // Can use this as template
-
-				if (AudioSource == null) {
-					AudioSource = gameObject.AddComponent<AudioSource>();
-					AudioSource.spatialBlend = 0f;	// Make it 2D
-				}
+				AudioPlayer.AudioSource.spatialBlend = 0f;	// Make it 2D
 			}
 
 			// Add handler components instead of listening to ourselves.
@@ -102,9 +87,21 @@ namespace DevLocker.Audio
 			SetupHandler<UIAudioEffects_Deselect>(DeselectAudio);
 		}
 
-		private void PlayAudio(AudioResource audioResource)
+		void OnValidate()
 		{
-			if (audioResource == null)
+			SubmitAudio.OnValidate(this);
+			PointerClickAudio.OnValidate(this);
+			PointerDownAudio.OnValidate(this);
+			PointerUpAudio.OnValidate(this);
+			PointerEnterAudio.OnValidate(this);
+			PointerExitAudio.OnValidate(this);
+			SelectAudio.OnValidate(this);
+			DeselectAudio.OnValidate(this);
+		}
+
+		private void PlayAudio(AudioSourcePlayer.AudioReferenceProperty audioReference)
+		{
+			if (!audioReference.HasValidReference)
 				return;
 
 			if (InteractableMode != InteractableModeType.AlwaysPlay) {
@@ -118,17 +115,14 @@ namespace DevLocker.Audio
 				}
 			}
 
-			AudioSource.resource = audioResource;
-			AudioSource.Play();
-
-			PlayedAudio?.Invoke(this, audioResource);
+			AudioPlayer.PlayAudioReference(audioReference);
 		}
 
 		#region Helper behaviours
 
-		private void SetupHandler<T>(AudioResource audioResource) where T : UIAudioEffects_EventHandler
+		private void SetupHandler<T>(AudioSourcePlayer.AudioReferenceProperty audioReference) where T : UIAudioEffects_EventHandler
 		{
-			if (audioResource == null)
+			if (!audioReference.HasValidReference)
 				return;
 
 			var handler = gameObject.AddComponent<T>();
