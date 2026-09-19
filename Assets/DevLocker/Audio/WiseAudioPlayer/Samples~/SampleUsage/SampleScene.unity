@@ -638,8 +638,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -1340,8 +1340,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -1538,8 +1538,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -2479,8 +2479,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 1
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 1
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -2658,8 +2658,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -2990,8 +2990,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 1
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3169,8 +3169,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3685,8 +3685,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3981,8 +3981,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -5799,8 +5799,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -6586,8 +6586,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern: 0
-  m_RepeatIntervalRange:
+  m_RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2

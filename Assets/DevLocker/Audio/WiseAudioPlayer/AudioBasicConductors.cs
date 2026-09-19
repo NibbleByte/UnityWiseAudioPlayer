@@ -246,7 +246,7 @@ namespace DevLocker.Audio.Conductors
 			player.AudioSource.volume = Volume * player.Volume;	// OneShot is volume is passed as argument, not changing the source.
 
 			player.AudioSource.resource = Looped;
-			player.Loop = true;
+			player.AudioSource.loop = true;
 
 			double introLengthDouble = (double)Intro.samples / (double)Intro.frequency; // This is more accurate than clip.float.
 			player.AudioSource.PlayScheduled(AudioSettings.dspTime + introLengthDouble - Overlap);

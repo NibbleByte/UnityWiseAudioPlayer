@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: RubbingBlocks_AudioAsset
   m_EditorClassIdentifier: 
   StateStorageLocation: 0
-  LoopRepeat: 0
-  RepeatIntervalRange:
+  RepeatPattern:
+    Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
   Delay: 0

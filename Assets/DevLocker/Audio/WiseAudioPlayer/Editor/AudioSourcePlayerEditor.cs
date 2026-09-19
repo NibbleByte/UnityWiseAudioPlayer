@@ -1,17 +1,22 @@
-using System.Collections;
-using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
 namespace DevLocker.Audio.Editor
 {
-	[CustomPropertyDrawer(typeof(AudioSourcePlayer.IntervalRange))]
-	public class IntervalRangeDrawer : PropertyDrawer
+	[CustomPropertyDrawer(typeof(AudioSourcePlayer.RepeatOptions))]
+	public class RepeatOptionsDrawer : PropertyDrawer
 	{
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			return EditorGUIUtility.singleLineHeight;
+			var patternProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.Pattern));
+			var patternType = (AudioSourcePlayer.RepeatPatternType)patternProp.intValue;
+
+			if (patternType != AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+				return EditorGUIUtility.singleLineHeight;
+			}
+
+			return EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
 		}
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -20,18 +25,31 @@ namespace DevLocker.Audio.Editor
 
 			position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-			float padding = 6f;
-			Rect minValue = position;
-			minValue.width = position.width / 2 - padding;
+			var patternProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.Pattern));
+			var patternType = (AudioSourcePlayer.RepeatPatternType)patternProp.intValue;
 
-			Rect maxValue = position;
-			maxValue.width = position.width / 2;
-			maxValue.x += position.width / 2;
-			float oldLabelWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = 30f;
-			EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.IntervalRange.MinSeconds)), new GUIContent("Min"));
-			EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.IntervalRange.MaxSeconds)), new GUIContent("Max"));
-			EditorGUIUtility.labelWidth = oldLabelWidth;
+			var patternRect = position;
+			patternRect.height = EditorGUIUtility.singleLineHeight;
+			EditorGUI.PropertyField(patternRect, patternProp, GUIContent.none);
+
+			if (patternType == AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+				var intervalLineRect = position;
+				intervalLineRect.y = position.y + position.height - EditorGUIUtility.singleLineHeight;
+				intervalLineRect.height = EditorGUIUtility.singleLineHeight;
+
+				float padding = 6f;
+				Rect minValue = intervalLineRect;
+				minValue.width = intervalLineRect.width / 2 - padding;
+
+				Rect maxValue = intervalLineRect;
+				maxValue.width = intervalLineRect.width / 2;
+				maxValue.x += intervalLineRect.width / 2;
+				float oldLabelWidth = EditorGUIUtility.labelWidth;
+				EditorGUIUtility.labelWidth = 30f;
+				EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.MinSeconds)), new GUIContent("Min"));
+				EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.MaxSeconds)), new GUIContent("Max"));
+				EditorGUIUtility.labelWidth = oldLabelWidth;
+			}
 
 			EditorGUI.EndProperty();
 		}
@@ -128,13 +146,16 @@ namespace DevLocker.Audio.Editor
 
 			EditorGUI.BeginChangeCheck();
 
-			var repeatPattern = (AudioSourcePlayer.RepeatPatternType)serializedObject.FindProperty("m_RepeatPattern").intValue;
+			var audioAssetProp = serializedObject
+				.FindProperty("m_" + nameof(AudioSourcePlayer.AudioReference))
+				.FindPropertyRelative("m_" + nameof(AudioSourcePlayer.AudioReferenceProperty.AudioAsset))
+				;
 
 			// Will draw any child properties without [HideInInspector] attribute.
-			if (repeatPattern == AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+			if (audioAssetProp.objectReferenceValue == null) {
 				DrawPropertiesExcluding(serializedObject, "m_Script");
 			} else {
-				DrawPropertiesExcluding(serializedObject, "m_Script", "m_RepeatIntervalRange");
+				DrawPropertiesExcluding(serializedObject, "m_Script", "m_" + nameof(AudioSourcePlayer.RepeatPattern), "m_" + nameof(AudioSourcePlayer.Output));
 			}
 
 			if (EditorGUI.EndChangeCheck()) {

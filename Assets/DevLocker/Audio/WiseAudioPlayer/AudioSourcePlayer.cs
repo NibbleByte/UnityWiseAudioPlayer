@@ -20,6 +20,40 @@ namespace DevLocker.Audio
 			RepeatInterval = 4,
 		}
 
+		[Serializable]
+		public struct RepeatOptions
+		{
+			public RepeatPatternType Pattern;
+
+			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+			public float MinSeconds;
+			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+			public float MaxSeconds;
+
+			public float NextIntervalValue() => Pattern == RepeatPatternType.RepeatInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
+
+			public bool IsLooping => Pattern != RepeatPatternType.Once;
+
+			public bool IsPatternOnce => Pattern == RepeatPatternType.Once;
+			public bool IsPatternLoop => Pattern == RepeatPatternType.Loop;
+			public bool IsPatternInterval => Pattern == RepeatPatternType.RepeatInterval;
+
+			public void OnValidate(UnityEngine.Object context)
+			{
+#if UNITY_EDITOR
+				if (MinSeconds < 0f) {
+					MinSeconds = 0f;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+
+				if (MaxSeconds < MinSeconds) {
+					MaxSeconds = MinSeconds;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+#endif
+			}
+		}
+
 		/// <summary>
 		/// Holds <see cref="AudioResource"/> and <see cref="AudioPlayerAsset"/> together so user can select any type of asset.
 		/// Only one member should have a valid reference at all times.
@@ -59,30 +93,6 @@ namespace DevLocker.Audio
 			}
 		}
 
-		[Serializable]
-		public struct IntervalRange
-		{
-			public float MinSeconds;
-			public float MaxSeconds;
-
-			public float NextValue() => UnityEngine.Random.Range(MinSeconds, MaxSeconds);
-
-			public void OnValidate(UnityEngine.Object context)
-			{
-#if UNITY_EDITOR
-				if (MinSeconds < 0f) {
-					MinSeconds = 0f;
-					UnityEditor.EditorUtility.SetDirty(context);
-				}
-
-				if (MaxSeconds < MinSeconds) {
-					MaxSeconds = MinSeconds;
-					UnityEditor.EditorUtility.SetDirty(context);
-				}
-#endif
-			}
-		}
-
 		public delegate void PlayerEventHandler(AudioSourcePlayer player);
 		public static event PlayerEventHandler PlayStarted;
 		public static event PlayerEventHandler PlayPaused;
@@ -91,6 +101,8 @@ namespace DevLocker.Audio
 
 		/// <summary>
 		/// Gets or sets the used audio reference.
+		/// If <see cref="AudioPlayerAsset"/> is used, it will override some of the player fields like repeat, output mixer, etc.
+		///
 		/// NOTE: Don't use from conductors!!! Use <see cref="PlayDirectResource(AudioResource)"/> instead.
 		/// </summary>
 		public AudioReferenceProperty AudioReference {
@@ -99,7 +111,10 @@ namespace DevLocker.Audio
 				value.OnValidate(this);
 
 				m_AudioReference = value;
-				if (m_AudioSource) m_AudioSource.resource = m_AudioReference.AudioResource;
+				if (m_AudioSource) {
+					m_AudioSource.resource = m_AudioReference.AudioResource;
+					m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
+				}
 			}
 		}
 
@@ -115,6 +130,9 @@ namespace DevLocker.Audio
 		/// </summary>
 		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
 
+		/// <summary>
+		/// Output mixer to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
+		/// </summary>
 		public AudioMixerGroup Output {
 			get => m_Output;
 			set {
@@ -122,6 +140,11 @@ namespace DevLocker.Audio
 				if (m_AudioSource) m_AudioSource.outputAudioMixerGroup = value;
 			}
 		}
+
+		/// <summary>
+		/// Since <see cref="AudioPlayerAsset"/> overrides the output mixer, use this to get the actually used output mixer.
+		/// </summary>
+		public AudioMixerGroup EffectiveOutput => AudioReference.AudioAsset == null ? m_Output : AudioReference.AudioAsset.OutputMixer;
 
 		public AudioSource Template {
 			get => m_Template;
@@ -150,31 +173,38 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Short-cut for "<see cref="RepeatPattern"/> = <see cref="RepeatPatternType.Loop"/>"
+		/// Short-cut to see if audio is looping.
 		/// </summary>
 		public bool Loop {
-			get => RepeatPattern == RepeatPatternType.Loop;
-			set => RepeatPattern = RepeatPatternType.Loop;
+			get => RepeatPattern.IsLooping;
+			set {
+				var repeatPattern = RepeatPattern;
+				repeatPattern.Pattern = value ? RepeatPatternType.Loop : RepeatPatternType.Once;
+				RepeatPattern = repeatPattern;
+			}
 		}
 
-		public RepeatPatternType RepeatPattern {
+		/// <summary>
+		/// Repeat pattern to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
+		/// </summary>
+		public RepeatOptions RepeatPattern {
 			get => m_RepeatPattern;
 			set {
 				m_RepeatPattern = value;
-				if (m_AudioSource) m_AudioSource.loop = value == RepeatPatternType.Loop;
-				if (value == RepeatPatternType.RepeatInterval) {
+
+				if (m_AudioSource && AudioReference.AudioAsset == null) m_AudioSource.loop = value.Pattern == RepeatPatternType.Loop;
+
+				if (value.Pattern == RepeatPatternType.RepeatInterval) {
 					m_NextPlayTime = Time.time;
 					m_LastIsPlayingForRepeatInterval = m_ConductorCoroutine != null || (m_AudioSource?.isPlaying ?? false);
 				}
 			}
 		}
 
-		public IntervalRange RepeatIntervalRange {
-			get => m_RepeatIntervalRange;
-			set {
-				m_RepeatIntervalRange = value;
-			}
-		}
+		/// <summary>
+		/// Since <see cref="AudioPlayerAsset"/> overrides the repeat pattern, use this to get the actually used repeat pattern.
+		/// </summary>
+		public RepeatOptions EffectiveRepeatPattern => AudioReference.AudioAsset == null ? m_RepeatPattern : AudioReference.AudioAsset.RepeatPattern;
 
 		public float Volume {
 			get => m_Volume;
@@ -208,7 +238,7 @@ namespace DevLocker.Audio
 
 
 		[SerializeField]
-		[Tooltip("Audio mixer to use.\nWill be overriden by AudioAsset's mixer if any.\nIf left empty, it will copy the one of the template, if any")]
+		[Tooltip("Audio mixer to use.\n\nWill be overriden by the audio asset's mixer.\nIf left empty, it will copy the one of the template, if any")]
 		private AudioMixerGroup m_Output;
 
 		[SerializeField]
@@ -224,13 +254,8 @@ namespace DevLocker.Audio
 		private bool m_PlayOnEnable = true;
 
 		[SerializeField]
-		[Tooltip("How sound should be repeated, if needed.")]
-		[UnityEngine.Serialization.FormerlySerializedAs("m_Loop")]
-		private RepeatPatternType m_RepeatPattern;
-
-		[SerializeField]
-		[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
-		private IntervalRange m_RepeatIntervalRange;
+		[Tooltip("How sound should be repeated. Repeat interval allows you to specify seconds of silence every time after audio finished playing.\n\nWill be overriden when audio asset is used.")]
+		private RepeatOptions m_RepeatPattern;
 
 		[Tooltip("Fade duration when sound is interrupted (Stop, Pause, Unpause)")]
 		public float InterruptionFadeDuration = 0.2f;
@@ -298,14 +323,14 @@ namespace DevLocker.Audio
 				UnityEditor.EditorUtility.SetDirty(this);
 			}
 
-			m_RepeatIntervalRange.OnValidate(this);
+			m_RepeatPattern.OnValidate(this);
 
 			if (Application.isPlaying && m_AudioSource) {
 				if (m_AudioSource.mute != m_Mute) {
 					m_AudioSource.mute = m_Mute;
 				}
-				if (m_AudioSource.loop != (m_RepeatPattern == RepeatPatternType.Loop)) {
-					m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
+				if (m_AudioSource.loop != (EffectiveRepeatPattern.Pattern == RepeatPatternType.Loop)) {
+					m_AudioSource.loop = EffectiveRepeatPattern.Pattern == RepeatPatternType.Loop;
 				}
 				if (m_AudioSource.volume != m_Volume) {
 					m_AudioSource.volume = m_Volume;
@@ -314,7 +339,7 @@ namespace DevLocker.Audio
 #endif
 		}
 
-		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern == RepeatPatternType.RepeatInterval) || m_ConductorCoroutine != null);
+		public bool IsPlaying => m_AudioSource && (m_AudioSource.isPlaying || (m_ShouldPlayRepeating && m_RepeatPattern.IsPatternInterval && m_AudioReference.AudioAsset == null) || m_ConductorCoroutine != null);
 		public bool IsPaused { get; private set; }
 
 		// IsPlaying is false when paused.
@@ -371,7 +396,9 @@ namespace DevLocker.Audio
 			if (m_AudioReference.AudioAsset != null) {
 				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(m_AudioReference.AudioAsset, delay));
 				PlayStarted?.Invoke(this);
+
 			} else {
+
 				if (delay <= 0f) {
 					AudioSource.Play();
 				} else {
@@ -700,7 +727,9 @@ namespace DevLocker.Audio
 			if (playAsOneShot) {
 				AudioSource.PlayOneShot(clip, volume * m_Volume);
 			} else {
-				AudioSource.volume = volume * m_Volume;
+				if (m_VolumeCoroutine == null) {
+					AudioSource.volume = volume * m_Volume;
+				}
 				AudioSource.Play();
 			}
 
@@ -723,7 +752,9 @@ namespace DevLocker.Audio
 			if (playAsOneShot) {
 				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
 			} else {
-				AudioSource.volume = clipPair.Volume * m_Volume;
+				if (m_VolumeCoroutine == null) {
+					AudioSource.volume = clipPair.Volume * m_Volume;
+				}
 				AudioSource.Play();
 			}
 
@@ -751,7 +782,9 @@ namespace DevLocker.Audio
 			if (playAsOneShot) {
 				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
 			} else {
-				AudioSource.volume = clipPair.Volume * m_Volume;
+				if (m_VolumeCoroutine == null) {
+					AudioSource.volume = clipPair.Volume * m_Volume;
+				}
 				AudioSource.Play();
 			}
 
@@ -789,7 +822,9 @@ namespace DevLocker.Audio
 
 			// This bypasses the AudioResource property.
 			AudioSource.resource = resourcePair.Resource;
-			AudioSource.volume = resourcePair.Volume * m_Volume;
+			if (m_VolumeCoroutine == null) {
+				AudioSource.volume = resourcePair.Volume * m_Volume;
+			}
 			AudioSource.Play();
 
 			LastPlayTime = Time.time;
@@ -801,9 +836,8 @@ namespace DevLocker.Audio
 		{
 			delay += audioAsset.Delay;
 
-			if (m_AudioReference.AudioAsset.OutputMixer) {
-				AudioSource.outputAudioMixerGroup = m_AudioReference.AudioAsset.OutputMixer;
-			}
+			// Always overriden by the audio asset.
+			AudioSource.outputAudioMixerGroup = audioAsset.OutputMixer;
 
 			if (delay > 0f) {
 				float waitTime = 0f;
@@ -820,8 +854,9 @@ namespace DevLocker.Audio
 
 			// Restore the output if we changed it.
 			// Coroutine returns early, sound may still be playing - don't touch the mixer.
-			if (m_AudioReference.AudioAsset.OutputMixer && !m_AudioSource.isPlaying) {
+			if (!m_AudioSource.isPlaying) {
 				AudioSource.outputAudioMixerGroup = m_Output;
+				m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
 			}
 
 			// Signal that conductor finished playing (which doesn't mean the audio finished).
@@ -841,8 +876,9 @@ namespace DevLocker.Audio
 		private void StopConductorCrt()
 		{
 			// Restore the output if we changed it. Even if the coroutine stopped playing long ago.
-			if (m_AudioReference.AudioAsset && m_AudioReference.AudioAsset.OutputMixer) {
-				AudioSource.outputAudioMixerGroup = m_Output;
+			if (m_AudioReference.AudioAsset && m_AudioSource) {
+				m_AudioSource.outputAudioMixerGroup = m_Output;
+				m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
 			}
 
 			if (m_ConductorCoroutine != null) {
@@ -881,11 +917,12 @@ namespace DevLocker.Audio
 
 		protected virtual void Update()
 		{
-			if (m_ShouldPlayRepeating && m_ConductorCoroutine == null && m_RepeatPattern == RepeatPatternType.RepeatInterval && m_AudioSource) {
+			// Check for repeating interval when playing normal audio clip, but skip when using audio asset - it handles repeating on it's own.
+			if (m_ShouldPlayRepeating && m_ConductorCoroutine == null && m_RepeatPattern.IsPatternInterval && AudioReference.AudioAsset == null && m_AudioSource) {
 
 				if (m_AudioSource.isPlaying != m_LastIsPlayingForRepeatInterval) {
 					if (!m_AudioSource.isPlaying) {
-						m_NextPlayTime = Time.time + m_RepeatIntervalRange.NextValue();
+						m_NextPlayTime = Time.time + m_RepeatPattern.NextIntervalValue();
 					}
 					m_LastIsPlayingForRepeatInterval = m_AudioSource.isPlaying;
 				}
@@ -916,7 +953,7 @@ namespace DevLocker.Audio
 			m_AudioSource.resource = m_AudioReference.AudioResource;
 			m_AudioSource.outputAudioMixerGroup = m_Output ?? m_Template?.outputAudioMixerGroup ?? m_AudioSource.outputAudioMixerGroup;
 			m_Output = m_AudioSource.outputAudioMixerGroup; // In case we're using template with it's own mixer.
-			m_AudioSource.loop = m_RepeatPattern == RepeatPatternType.Loop;
+			m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
 			m_AudioSource.volume = m_Volume;
 			m_AudioSource.mute = m_Mute;
 
