@@ -123,10 +123,8 @@ namespace DevLocker.Audio
 		[Tooltip("Where to store conductors state (if any)?\nExample: should screams shuffle per character or per asset?")]
 		public ConductorsStateStorageLocation StateStorageLocation;
 
-		[Tooltip("Should it loop this audio asset (ignores the player settings)?")]
-		public bool LoopRepeat;
-		[Tooltip("Random interval to repeatedly play the audio asset.")]
-		public AudioSourcePlayer.IntervalRange RepeatIntervalRange;
+		[Tooltip("How sound should be repeated. Repeat interval allows you to specify seconds of silence every time after audio finished playing.\n\nSome conductors may ignore this property and loop on their own.\nThis will override the AudioSourcePlayer setting.")]
+		public AudioSourcePlayer.RepeatOptions RepeatPattern;
 
 		[Tooltip("Delay before playing the audio asset. Will not be included in the loop.")]
 		public float Delay = 0f;
@@ -145,18 +143,70 @@ namespace DevLocker.Audio
 
 		public IEnumerator Play(AudioSourcePlayer player, object context)
 		{
+			switch (RepeatPattern.Pattern) {
+				case AudioSourcePlayer.RepeatPatternType.Once:
+					player.AudioSource.loop = false;
+					break;
+				case AudioSourcePlayer.RepeatPatternType.Loop:
+					player.AudioSource.loop = true;
+					break;
+				case AudioSourcePlayer.RepeatPatternType.RepeatInterval:
+					player.AudioSource.loop = false;
+					break;
+				default:
+					throw new NotSupportedException();
+			}
+
+			bool assetCustomLoop;
 			do {
+				assetCustomLoop = false;
+
 				var conductorBind = Conductors.FirstOrDefault(bind => bind.Filters.All(f => f?.IsAllowed(context, player, this) ?? true));
 				if (conductorBind.Conductor != null) {
+					var playConductor = conductorBind.Conductor as Conductors.PlayAudioConductor;
+
+					// If conductor has custom logic other than just playing a looped sound,
+					// we implement the loop. Normal sounds should still loop via the source itself,
+					// which should drop any playback gaps between loops.
+					//
+					// NOTE: PlayOneShot() is not looped by the audio source so we must handle it ourselves.
+					if (RepeatPattern.IsLooping && (playConductor == null || !playConductor.StopPlayingSound)) {
+						assetCustomLoop = true;
+						player.AudioSource.loop = false;
+					}
+
 					yield return conductorBind.Conductor.Play(player, this);
+
+				} else {
+
+					if (RepeatPattern.IsLooping) {
+						// If no match, keep looping untill we get a match according to the loop pattern.
+						yield return null;
+						assetCustomLoop = true;
+						continue;
+					} else {
+						yield break;
+					}
 				}
 
-				if (LoopRepeat) {
-					float waitTime = RepeatIntervalRange.NextValue();
+				if (assetCustomLoop) {
+					do {
+						yield return null;
+					} while (player && (player.AudioSource.isPlaying || player.IsPaused));
+
+					if (player == null)
+						yield break;
+				}
+
+				if (RepeatPattern.IsPatternInterval) {
+					float waitTime = RepeatPattern.NextIntervalValue();
 					float passedTime = 0.0f;
 
-					while(passedTime <= waitTime && LoopRepeat) {
+					while (passedTime <= waitTime && RepeatPattern.IsLooping) {
 						yield return null;
+
+						if (player == null)
+							yield break;
 
 						if (!player.IsPaused && !player.AudioSource.isPlaying) {
 							passedTime += Time.deltaTime;
@@ -164,14 +214,14 @@ namespace DevLocker.Audio
 					}
 				}
 
-			} while (LoopRepeat);
+			} while (RepeatPattern.IsPatternInterval || assetCustomLoop);
 		}
 
 		void OnValidate()
 		{
 			Utils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
 
-			RepeatIntervalRange.OnValidate(this);
+			RepeatPattern.OnValidate(this);
 
 			foreach (var conductorBind in Conductors) {
 				conductorBind.Conductor?.OnValidate(this);
