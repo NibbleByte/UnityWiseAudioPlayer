@@ -1534,7 +1534,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: c0e5b1f56d87e3949a584e9ea05926d6, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -2986,7 +2986,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 96981d7340dfde84397fb161a0498ea1, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3165,7 +3165,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 8eda6599405a3444f815d2bd780fca17, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3681,7 +3681,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 4af85a9e863d21748835982810baee08, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3977,7 +3977,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 8eda6599405a3444f815d2bd780fca17, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -5795,7 +5795,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: ec742a6240b6b694a873cce1df73f804, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -6582,7 +6582,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 73e7d7732348371458bc91a8f626f5b7, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_Output: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0

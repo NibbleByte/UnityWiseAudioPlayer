@@ -129,8 +129,11 @@ namespace DevLocker.Audio
 		[Tooltip("Delay before playing the audio asset. Will not be included in the loop.")]
 		public float Delay = 0f;
 
-		[Tooltip("Mixer to be used when playing asset. Will override the one specified on the AudioSourcePlayer")]
+		[Tooltip("Mixer to be used when playing asset. Will override the one specified on the AudioSourcePlayer. When empty it will try to use the Template's output mixer.")]
 		public AudioMixerGroup OutputMixer;
+
+		[Tooltip("Prefab to be used as template when initializing the AudioSource properties")]
+		public AudioSource Template;
 
 		public AudioConductorBind[] Conductors;
 
