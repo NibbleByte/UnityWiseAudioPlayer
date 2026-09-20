@@ -18,7 +18,8 @@ MonoBehaviour:
     MinSeconds: 0
     MaxSeconds: 0
   Delay: 0
-  OutputMixer: {fileID: 0}
+  OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  Template: {fileID: 0}
   Conductors:
   - Conductor:
       rid: 8526195400101331320

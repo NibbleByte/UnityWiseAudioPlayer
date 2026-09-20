@@ -110,10 +110,17 @@ namespace DevLocker.Audio
 			set {
 				value.OnValidate(this);
 
+				if (m_AudioReference.AudioAsset != value.AudioAsset) {
+					// Audio asset may change the template, which may confuse StartAudioAsset().
+					// Stop any running coroutines now to prevent this.
+					StopConductorCrt();
+				}
+
 				m_AudioReference = value;
 				if (m_AudioSource) {
 					m_AudioSource.resource = m_AudioReference.AudioResource;
 					m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
+					SetupAudioSource();
 				}
 			}
 		}
@@ -137,15 +144,41 @@ namespace DevLocker.Audio
 			get => m_Output;
 			set {
 				m_Output = value;
-				if (m_AudioSource) m_AudioSource.outputAudioMixerGroup = value;
+				if (m_AudioSource) m_AudioSource.outputAudioMixerGroup = EffectiveOutput;
 			}
 		}
 
 		/// <summary>
 		/// Since <see cref="AudioPlayerAsset"/> overrides the output mixer, use this to get the actually used output mixer.
 		/// </summary>
-		public AudioMixerGroup EffectiveOutput => AudioReference.AudioAsset == null ? m_Output : AudioReference.AudioAsset.OutputMixer;
+		public AudioMixerGroup EffectiveOutput {
+			get {
+				var asset = AudioReference.AudioAsset;
 
+				if (asset == null) {
+					if (m_Output)
+						return m_Output;
+
+					if (m_Template)
+						return m_Template.outputAudioMixerGroup;
+
+				} else {
+
+					if (asset.OutputMixer)
+						return asset.OutputMixer;
+
+					if (asset.Template)
+						return asset.Template.outputAudioMixerGroup;
+				}
+
+
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Template prefab to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
+		/// </summary>
 		public AudioSource Template {
 			get => m_Template;
 			set {
@@ -155,6 +188,11 @@ namespace DevLocker.Audio
 				}
 			}
 		}
+
+		/// <summary>
+		/// Since <see cref="AudioPlayerAsset"/> overrides the template, use this to get the actually used template.
+		/// </summary>
+		public AudioSource EffectiveTemplate => AudioReference.AudioAsset == null ? m_Template : AudioReference.AudioAsset.Template;
 
 		public bool Mute {
 			get => m_Mute;
@@ -238,11 +276,11 @@ namespace DevLocker.Audio
 
 
 		[SerializeField]
-		[Tooltip("Audio mixer to use.\n\nWill be overriden by the audio asset's mixer.\nIf left empty, it will copy the one of the template, if any")]
+		[Tooltip("Audio mixer to use.\n\nWill be overriden by the audio asset's mixer.\nIf left empty, it will copy the one of the template")]
 		private AudioMixerGroup m_Output;
 
 		[SerializeField]
-		[Tooltip("Prefab (or scene object) to be used as template when initializing the AudioSource properties")]
+		[Tooltip("Prefab (or scene object) to be used as template when initializing the AudioSource properties.\n\nWill be overriden by the audio asset's template.")]
 		private AudioSource m_Template;
 
 		[SerializeField]
@@ -268,6 +306,7 @@ namespace DevLocker.Audio
 		private static readonly List<AudioSourcePlayer> m_ActivePlayersRegister = new List<AudioSourcePlayer>();
 
 		private AudioSource m_AudioSource;
+		private AudioSource m_AppliedTemplate;
 
 		private Coroutine m_VolumeCoroutine;
 		private Coroutine m_ConductorCoroutine;
@@ -294,7 +333,7 @@ namespace DevLocker.Audio
 				m_AudioSource.enabled = true;
 
 				// Restore in case it was changed by audio asset and coroutine was stopped from OnDisable().
-				m_AudioSource.outputAudioMixerGroup = m_Output ?? m_AudioSource.outputAudioMixerGroup;
+				m_AudioSource.outputAudioMixerGroup = EffectiveOutput;
 			}
 
 			if (PlayOnEnable && AudioReference.HasValidReference) {
@@ -394,10 +433,12 @@ namespace DevLocker.Audio
 			StopConductorCrt();
 
 			if (m_AudioReference.AudioAsset != null) {
-				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(m_AudioReference.AudioAsset, delay));
+				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(delay));
 				PlayStarted?.Invoke(this);
 
 			} else {
+
+				SetupAudioSource();
 
 				if (delay <= 0f) {
 					AudioSource.Play();
@@ -832,12 +873,9 @@ namespace DevLocker.Audio
 
 		#endregion
 
-		private IEnumerator StartAudioAsset(AudioPlayerAsset audioAsset, float delay)
+		private IEnumerator StartAudioAsset(float delay)
 		{
-			delay += audioAsset.Delay;
-
-			// Always overriden by the audio asset.
-			AudioSource.outputAudioMixerGroup = audioAsset.OutputMixer;
+			delay += m_AudioReference.AudioAsset.Delay;
 
 			if (delay > 0f) {
 				float waitTime = 0f;
@@ -850,13 +888,15 @@ namespace DevLocker.Audio
 				}
 			}
 
-			yield return audioAsset.Play(this, ConductorsFilterContext);
+			// Always overriden by the audio asset.
+			AudioSource.outputAudioMixerGroup = EffectiveOutput;
 
-			// Restore the output if we changed it.
+			yield return m_AudioReference.AudioAsset.Play(this, ConductorsFilterContext);
+
 			// Coroutine returns early, sound may still be playing - don't touch the mixer.
 			if (!m_AudioSource.isPlaying) {
-				AudioSource.outputAudioMixerGroup = m_Output;
-				m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
+				AudioSource.outputAudioMixerGroup = EffectiveOutput;
+				m_AudioSource.loop = EffectiveRepeatPattern.IsPatternLoop;
 			}
 
 			// Signal that conductor finished playing (which doesn't mean the audio finished).
@@ -877,7 +917,7 @@ namespace DevLocker.Audio
 		{
 			// Restore the output if we changed it. Even if the coroutine stopped playing long ago.
 			if (m_AudioReference.AudioAsset && m_AudioSource) {
-				m_AudioSource.outputAudioMixerGroup = m_Output;
+				m_AudioSource.outputAudioMixerGroup = EffectiveOutput;
 				m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
 			}
 
@@ -938,27 +978,25 @@ namespace DevLocker.Audio
 
 		private void SetupAudioSource()
 		{
-			if (m_AudioSource && (m_Template == null || m_Template.gameObject != gameObject)) {
-				DestroyImmediate(m_AudioSource);
-			}
+			if (m_AudioSource == null) {
 
-			// If the template is component on this object, use it directly.
-			if (m_Template && m_Template.gameObject == gameObject) {
-				m_AudioSource = m_Template;
-			} else {
 				m_AudioSource = gameObject.AddComponent<AudioSource>();
+
+				m_AudioSource.playOnAwake = false; // Will be handled by us.
+				m_AudioSource.resource = m_AudioReference.AudioResource;
+				m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
+				m_AudioSource.volume = m_Volume;
+				m_AudioSource.mute = m_Mute;
 			}
 
-			m_AudioSource.playOnAwake = false; // Will be handled by us.
-			m_AudioSource.resource = m_AudioReference.AudioResource;
-			m_AudioSource.outputAudioMixerGroup = m_Output ?? m_Template?.outputAudioMixerGroup ?? m_AudioSource.outputAudioMixerGroup;
-			m_Output = m_AudioSource.outputAudioMixerGroup; // In case we're using template with it's own mixer.
-			m_AudioSource.loop = m_RepeatPattern.IsPatternLoop;
-			m_AudioSource.volume = m_Volume;
-			m_AudioSource.mute = m_Mute;
+			m_AudioSource.outputAudioMixerGroup = EffectiveOutput;
 
-			if (m_Template && m_Template.gameObject != gameObject) {
-				CopyAudioSourceDetails(m_AudioSource, m_Template);
+			if (EffectiveTemplate != m_AppliedTemplate) {
+				m_AppliedTemplate = EffectiveTemplate;
+
+				if (EffectiveTemplate) {
+					CopyAudioSourceDetails(m_AudioSource, m_AppliedTemplate);
+				}
 			}
 		}
 
@@ -970,7 +1008,7 @@ namespace DevLocker.Audio
 			destination.loop = source.loop;
 			destination.volume = source.volume;
 
-			CopyAudioSource(destination, source);
+			CopyAudioSourceDetails(destination, source);
 		}
 
 		public static void CopyAudioSourceDetails(AudioSource destination, AudioSource source)
