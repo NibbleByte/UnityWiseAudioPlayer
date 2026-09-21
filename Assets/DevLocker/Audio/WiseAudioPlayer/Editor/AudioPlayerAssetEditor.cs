@@ -1,4 +1,4 @@
-using DevLocker.Audio.Utils;
+using DevLocker.Audio.AudioPlayerUtils;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,93 +13,6 @@ namespace DevLocker.Audio.Editor
 	public class AudioConductorDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
-
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.ResourceWithVolume))]
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.ClipWithVolume))]
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.ClipWithVolumePitch))]
-	internal class AudioWithVolumePropertyDrawer : PropertyDrawer
-	{
-		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-		{
-			bool supportsPitching = property.type == nameof(AudioPlayerAsset.ClipWithVolumePitch);
-
-			if (!supportsPitching)
-				return EditorGUIUtility.singleLineHeight;
-
-			var pitchesProperty = property.FindPropertyRelative(nameof(AudioPlayerAsset.ClipWithVolumePitch.Pitches));
-
-			return EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing + (pitchesProperty.arraySize > 0 ? EditorGUI.GetPropertyHeight(pitchesProperty) : 0f);
-		}
-
-		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-		{
-			EditorGUI.BeginProperty(position, label, property);
-
-			bool isClip = property.type.StartsWith("Clip");	// Matches both types with clips (above).
-			bool supportsPitching = property.type == nameof(AudioPlayerAsset.ClipWithVolumePitch);
-
-			var resourceProperty = property.FindPropertyRelative(isClip ? nameof(AudioPlayerAsset.ClipWithVolume.Clip) : nameof(AudioPlayerAsset.ResourceWithVolume.Resource));
-			var volumeProperty = property.FindPropertyRelative(nameof(AudioPlayerAsset.ResourceWithVolume.VolumeDB));
-
-			const float volumeWidth = 74f;
-			const float volumePadding = 4f;
-
-			float pitchButtonWidth = supportsPitching ? 18f : 0f;
-			const float pitchPadding = 4f;
-
-			var mainLineRect = position;
-			mainLineRect.height = EditorGUIUtility.singleLineHeight;
-
-			var resourceRect = mainLineRect;
-			resourceRect.width -= volumeWidth + volumePadding;
-			resourceRect.width -= pitchPadding + pitchButtonWidth;
-
-			var volumeRect = mainLineRect;
-			volumeRect.x += mainLineRect.width - volumeWidth - pitchPadding - pitchButtonWidth;
-			volumeRect.width = volumeWidth;
-
-			var pitchButtonRect = mainLineRect;
-			pitchButtonRect.x += mainLineRect.width - pitchButtonWidth;
-			pitchButtonRect.width = pitchButtonWidth;
-
-			EditorGUI.PropertyField(resourceRect, resourceProperty, new GUIContent(""), true);
-
-			int prevIndent = EditorGUI.indentLevel;
-			EditorGUI.indentLevel = 0;
-			EditorGUI.PropertyField(volumeRect, volumeProperty, new GUIContent(""), true);
-			EditorGUI.indentLevel = prevIndent;
-
-			if (supportsPitching) {
-				var pitchesProperty = property.FindPropertyRelative(nameof(AudioPlayerAsset.ClipWithVolumePitch.Pitches));
-
-				Color prevBackgroundColor = GUI.backgroundColor;
-				if (pitchesProperty.arraySize > 0) {
-					GUI.backgroundColor = Color.yellow;
-				}
-
-				bool togglePitches = GUI.Button(pitchButtonRect, new GUIContent("P", "Toggle pitch randomization."), EditorStyles.miniButton);
-
-				GUI.backgroundColor = prevBackgroundColor;
-
-				if (togglePitches) {
-					if (pitchesProperty.arraySize == 0) {
-						pitchesProperty.arraySize = 1;
-						pitchesProperty.GetArrayElementAtIndex(0).intValue = 100;
-					} else {
-						pitchesProperty.ClearArray();
-					}
-				}
-
-				if (pitchesProperty.arraySize > 0) {
-					var pitchesRect = position;
-					pitchesRect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-					pitchesRect.height -= EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-					EditorGUI.PropertyField(pitchesRect, pitchesProperty, true);
-				}
-			}
-		}
-	}
-
 
 	/// <summary>
 	/// Draw "P" play button next to the reference.
@@ -167,8 +80,8 @@ namespace DevLocker.Audio.Editor
 					if (audioClipProperty.propertyType == SerializedPropertyType.ObjectReference) {
 						clip = audioClipProperty.objectReferenceValue as AudioClip;
 					} else {
-						clip = audioClipProperty.FindPropertyRelative(nameof(AudioPlayerAsset.ClipWithVolume.Clip))?.objectReferenceValue as AudioClip ??
-							   audioClipProperty.FindPropertyRelative(nameof(AudioPlayerAsset.ResourceWithVolume.Resource))?.objectReferenceValue as AudioClip;
+						clip = audioClipProperty.FindPropertyRelative(nameof(ClipWithVolume.Clip))?.objectReferenceValue as AudioClip ??
+							   audioClipProperty.FindPropertyRelative(nameof(ResourceWithVolume.Resource))?.objectReferenceValue as AudioClip;
 					}
 
 					if (clip == null)

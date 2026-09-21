@@ -39,4 +39,12 @@ MonoBehaviour:
         AudioClip:
           Clip: {fileID: 8300000, guid: c62e63e4c436321429ec7d31a4de20cb, type: 3}
           VolumeDB: 0
+          UseVolumeRange: 0
+          VolumeRangeMinDB: 0
+          VolumeRangeMaxDB: 0
+          VolumeRangeStepDB: 0
+          UsePitchRange: 0
+          PitchRangeMin: 0
+          PitchRangeMax: 0
+          PitchRangeStep: 0
           Pitches: 

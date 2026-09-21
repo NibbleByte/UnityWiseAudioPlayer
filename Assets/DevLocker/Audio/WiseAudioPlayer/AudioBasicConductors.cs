@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DevLocker.Audio.AudioPlayerUtils;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -15,7 +16,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip(StopPlayingSoundTooltip)]
 		public bool StopPlayingSound = false;
 
-		public AudioPlayerAsset.ClipWithVolumePitch AudioClip;
+		public ClipWithVolumePitch AudioClip;
 
 		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
@@ -57,7 +58,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("Avoid repeating the last n clips. Used with Random mode. Limited to the number of clips in the collection.")]
 		public int AvoidRepeatingLast = 0;
 
-		public AudioPlayerAsset.ClipWithVolume[] AudioClips;
+		public ClipWithVolumePitch[] AudioClips;
 
 #if UNITY_EDITOR
 		public override void OnValidate(AudioPlayerAsset context)
@@ -258,7 +259,7 @@ namespace DevLocker.Audio.Conductors
 	[Serializable]
 	public class PlayPitchSequenceConductor : AudioPlayerAsset.AudioConductor
 	{
-		public AudioPlayerAsset.ClipWithVolume AudioClip;
+		public ClipWithVolume AudioClip;
 
 		[Tooltip("Should it start all over the pitch sequence on reacing the end, or should it use the last pitch?")]
 		public bool ResetOnSequenceEnd = false;
@@ -267,7 +268,7 @@ namespace DevLocker.Audio.Conductors
 		public float ResetAfterSeconds = 3f;
 
 		[Tooltip(AudioPlayerAsset.CentPitchHint)]
-		[Utils.FieldUnitDecorator("ct", "Cents")]
+		[AudioPlayerUtils.FieldUnitDecorator("ct", "Cents")]
 		public int[] PitchSequence;
 
 		private const string PitchIndex_StorageKey = "PitchIndex_" + nameof(PlayPitchSequenceConductor);
