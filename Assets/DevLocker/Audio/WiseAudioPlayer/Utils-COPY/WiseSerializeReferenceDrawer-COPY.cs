@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEngine;
 
 
-namespace DevLocker.Audio.AudioPlayerUtils
+namespace DevLocker.Audio.Utils
 {
 	/// <summary>
 	/// HACK: THIS IS COPY-PASTE FROM THE DevLocker.Utils at https://github.com/NibbleByte/UnityWiseSerializeReference

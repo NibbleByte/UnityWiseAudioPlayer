@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DevLocker.Audio.AudioPlayerUtils;
+using DevLocker.Audio.Utils;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -57,7 +57,7 @@ namespace DevLocker.Audio.Conductors
 
 		[Tooltip("Avoid repeating the last n clips. Used with Random mode. Limited to the number of clips in the collection.")]
 		public int AvoidRepeatingLast = 0;
-		
+
 		[Space]
 		[Tooltip("Random volume offset in whole decibels, rolled on every play and added on top of the volume of the selected clip.\nThe final volume is clamped to [-80, 0] dB.")]
 		public VolumeRange VolumeRange;

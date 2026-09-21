@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using DevLocker.Audio.AudioPlayerUtils;
+using DevLocker.Audio.Utils;
 using UnityEngine;
 using UnityEngine.Audio;
 

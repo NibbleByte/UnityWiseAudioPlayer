@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DevLocker.Audio.AudioPlayerUtils.Editor
+namespace DevLocker.Audio.Utils.Editor
 {
 	[CustomPropertyDrawer(typeof(ResourceWithVolume))]
 	[CustomPropertyDrawer(typeof(ClipWithVolume))]
