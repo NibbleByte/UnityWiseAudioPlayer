@@ -308,9 +308,9 @@ namespace DevLocker.Audio.Conductors
 				pitchIndex = 0;
 			}
 
-			player.AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, PitchSequence[pitchIndex]);
+			float pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, PitchSequence[pitchIndex]);
 
-			player.PlayDirectClip(AudioClip, playAsOneShot: true);
+			player.PlayDirectClip(AudioClip, playAsOneShot: true, pitch);
 
 			pitchIndex = ResetOnSequenceEnd
 				? (pitchIndex + 1) % PitchSequence.Length
