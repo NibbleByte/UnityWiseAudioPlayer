@@ -784,7 +784,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(ClipWithVolume clipPair, bool playAsOneShot, float pitch = 1.0f)
+		public virtual void PlayDirectClip(ClipWithVolume clipPair, bool playAsOneShot, float pitch = 1.0f, int volumeOffsetDB = 0)
 		{
 			if (AudioSource == null)
 				return;
@@ -796,7 +796,7 @@ namespace DevLocker.Audio
 			AudioSource.pitch = pitch;
 
 			// Rolls the volume randomization range (if used), so call it only once.
-			float volume = clipPair.GetPlayVolume();
+			float volume = clipPair.GetPlayVolume(volumeOffsetDB);
 
 			if (playAsOneShot) {
 				AudioSource.PlayOneShot(clipPair.Clip, volume * m_Volume);
@@ -814,7 +814,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(ClipWithVolumePitch clipPair, bool playAsOneShot)
+		public virtual void PlayDirectClip(ClipWithVolumePitch clipPair, bool playAsOneShot, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
 		{
 			if (AudioSource == null)
 				return;
@@ -825,14 +825,11 @@ namespace DevLocker.Audio
 			AudioSource.clip = clipPair.Clip;
 
 			// Pitch range has priority over the pitches list.
-			if (clipPair.HasPitchVariation) {
-				AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, clipPair.GetRandomPitch());
-			} else {
-				AudioSource.pitch = 1f; // Reset pitch in case it was changed by last user.
-			}
+			// No variation and no offset means pitch of 0 cents, i.e. 1f - resets the pitch in case it was changed by the last user.
+			AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, clipPair.GetRandomPitch(pitchOffsetCents));
 
 			// Rolls the volume randomization range (if used), so call it only once.
-			float volume = clipPair.GetPlayVolume();
+			float volume = clipPair.GetPlayVolume(volumeOffsetDB);
 
 			if (playAsOneShot) {
 				AudioSource.PlayOneShot(clipPair.Clip, volume * m_Volume);
@@ -870,7 +867,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectResource(ResourceWithVolume resourcePair, float pitch = 1.0f)
+		public virtual void PlayDirectResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
 		{
 			if (AudioSource == null)
 				return;
@@ -883,7 +880,7 @@ namespace DevLocker.Audio
 
 			if (m_VolumeCoroutine == null) {
 				// Rolls the volume randomization range (if used).
-				AudioSource.volume = resourcePair.GetPlayVolume() * m_Volume;
+				AudioSource.volume = resourcePair.GetPlayVolume(volumeOffsetDB) * m_Volume;
 			}
 			AudioSource.Play();
 

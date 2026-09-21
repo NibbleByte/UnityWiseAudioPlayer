@@ -57,6 +57,13 @@ namespace DevLocker.Audio.Conductors
 
 		[Tooltip("Avoid repeating the last n clips. Used with Random mode. Limited to the number of clips in the collection.")]
 		public int AvoidRepeatingLast = 0;
+		
+		[Space]
+		[Tooltip("Random volume offset in whole decibels, rolled on every play and added on top of the volume of the selected clip.\nThe final volume is clamped to [-80, 0] dB.")]
+		public VolumeRange VolumeRange;
+
+		[Tooltip("Random pitch offset, rolled on every play and added on top of the pitch of the selected clip.\n\n" + AudioPlayerAsset.CentPitchHint)]
+		public PitchRange PitchRange;
 
 		public ClipWithVolumePitch[] AudioClips;
 
@@ -82,11 +89,15 @@ namespace DevLocker.Audio.Conductors
 			if (AudioClips.Length == 0)
 				yield break;
 
+			// Offsets on top of the selected clip's own volume and pitch. Roll them only once per play.
+			int volumeOffsetDB = VolumeRange.Roll();
+			int pitchOffsetCents = PitchRange.Roll();
+
 			switch (Mode) {
 				case PlaybackMode.Sequential:
 					int sequentialIndex = asset.GetConductorsStorageValue(SequentialIndex_StorageKey, player, 0);
 
-					player.PlayDirectClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], playAsOneShot: !StopPlayingSound);
+					player.PlayDirectClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
 
 					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
 
@@ -101,7 +112,7 @@ namespace DevLocker.Audio.Conductors
 						Shuffle(shuffleIndices);
 					}
 
-					player.PlayDirectClip(AudioClips[shuffleIndices.LastOrDefault()], playAsOneShot: !StopPlayingSound);
+					player.PlayDirectClip(AudioClips[shuffleIndices.LastOrDefault()], playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
 
 					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
 
@@ -127,7 +138,7 @@ namespace DevLocker.Audio.Conductors
 
 					var clipIndexPair = clipIndexPairs[UnityEngine.Random.Range(0, clipIndexPairs.Count)];
 
-					player.PlayDirectClip(clipIndexPair.Key, playAsOneShot: !StopPlayingSound);
+					player.PlayDirectClip(clipIndexPair.Key, playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
 
 					randomLastIndices.Enqueue(clipIndexPair.Value);
 
@@ -268,7 +279,7 @@ namespace DevLocker.Audio.Conductors
 		public float ResetAfterSeconds = 3f;
 
 		[Tooltip(AudioPlayerAsset.CentPitchHint)]
-		[AudioPlayerUtils.FieldUnitDecorator("ct", "Cents")]
+		[FieldUnitDecorator("ct", "Cents")]
 		public int[] PitchSequence;
 
 		private const string PitchIndex_StorageKey = "PitchIndex_" + nameof(PlayPitchSequenceConductor);

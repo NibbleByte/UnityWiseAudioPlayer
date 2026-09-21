@@ -45,13 +45,15 @@ MonoBehaviour:
           Clip: {fileID: 8300000, guid: c647613ff47bfbb4aa6a0ec2a3d57027, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
     - rid: 8526195024085123078
       type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
@@ -67,13 +69,15 @@ MonoBehaviour:
           Clip: {fileID: 8300000, guid: 28dcd303c932c4041b8da03d59a93ff8, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
     - rid: 8526195024085123080
       type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
@@ -95,13 +99,15 @@ MonoBehaviour:
           Clip: {fileID: 8300000, guid: b4dcdaa7efec1a84f85eea51d23b5e40, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
     - rid: 8526195024085123083
       type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}

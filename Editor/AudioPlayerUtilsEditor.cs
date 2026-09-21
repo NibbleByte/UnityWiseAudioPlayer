@@ -12,14 +12,16 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 		private const string ClipName = nameof(ClipWithVolume.Clip);
 		private const string VolumeDBName = nameof(ResourceWithVolume.VolumeDB);
 		private const string UseVolumeRangeName = nameof(ResourceWithVolume.UseVolumeRange);
-		private const string VolumeRangeMinName = nameof(ResourceWithVolume.VolumeRangeMinDB);
-		private const string VolumeRangeMaxName = nameof(ResourceWithVolume.VolumeRangeMaxDB);
-		private const string VolumeRangeStepName = nameof(ResourceWithVolume.VolumeRangeStepDB);
+		private const string VolumeRangeName = nameof(ResourceWithVolume.VolumeRange);
+		private const string VolumeRangeMinName = nameof(VolumeRange.MinDB);
+		private const string VolumeRangeMaxName = nameof(VolumeRange.MaxDB);
+		private const string VolumeRangeStepName = nameof(VolumeRange.StepDB);
 		private const string PitchesName = nameof(ClipWithVolumePitch.Pitches);
 		private const string UsePitchRangeName = nameof(ClipWithVolumePitch.UsePitchRange);
-		private const string PitchRangeMinName = nameof(ClipWithVolumePitch.PitchRangeMin);
-		private const string PitchRangeMaxName = nameof(ClipWithVolumePitch.PitchRangeMax);
-		private const string PitchRangeStepName = nameof(ClipWithVolumePitch.PitchRangeStep);
+		private const string PitchRangeName = nameof(ClipWithVolumePitch.PitchRange);
+		private const string PitchRangeMinName = nameof(PitchRange.Min);
+		private const string PitchRangeMaxName = nameof(PitchRange.Max);
+		private const string PitchRangeStepName = nameof(PitchRange.Step);
 
 		private const int DefaultVolumeRangeMinDB = -6;
 		private const int DefaultVolumeRangeMaxDB = 0;
@@ -30,8 +32,6 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 
 		private const float VolumeWidth = 65f;
 		private const float VolumePadding = 4f;
-		private const float RangeFieldWidth = 54f;
-		private const float RangePadding = 4f;
 
 		/// <summary>
 		/// Optional features (volume range, pitch range, pitch list) are drawn indented below the main line.
@@ -164,16 +164,7 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 			if (useVolumeRangeProperty.boolValue) {
 				nextRect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-				DrawMinMaxRange(
-					nextRect,
-					VolumeRangeLabel,
-					property.FindPropertyRelative(VolumeRangeMinName),
-					property.FindPropertyRelative(VolumeRangeMaxName),
-					property.FindPropertyRelative(VolumeRangeStepName),
-					AudioPlayerUtils.MinVolumeRangeDB,
-					AudioPlayerUtils.MaxVolumeRangeDB,
-					isInt: true
-					);
+				EditorGUI.PropertyField(nextRect, property.FindPropertyRelative(VolumeRangeName), VolumeRangeLabel);
 			}
 
 			if (supportsPitching) {
@@ -181,16 +172,7 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 				if (property.FindPropertyRelative(UsePitchRangeName).boolValue) {
 					nextRect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-					DrawMinMaxRange(
-						nextRect,
-						PitchRangeLabel,
-						property.FindPropertyRelative(PitchRangeMinName),
-						property.FindPropertyRelative(PitchRangeMaxName),
-						property.FindPropertyRelative(PitchRangeStepName),
-						AudioPlayerUtils.MinPitchRangeCents,
-						AudioPlayerUtils.MaxPitchRangeCents,
-						isInt: true
-						);
+					EditorGUI.PropertyField(nextRect, property.FindPropertyRelative(PitchRangeName), PitchRangeLabel);
 					
 				} else {
 					
@@ -224,8 +206,9 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 				useProperty.boolValue = !useProperty.boolValue;
 
 				if (useProperty.boolValue) {
-					var minProperty = target.FindPropertyRelative(VolumeRangeMinName);
-					var maxProperty = target.FindPropertyRelative(VolumeRangeMaxName);
+					var rangeProperty = target.FindPropertyRelative(VolumeRangeName);
+					var minProperty = rangeProperty.FindPropertyRelative(VolumeRangeMinName);
+					var maxProperty = rangeProperty.FindPropertyRelative(VolumeRangeMaxName);
 
 					if (minProperty.intValue == 0 && maxProperty.intValue == 0) {
 						minProperty.intValue = DefaultVolumeRangeMinDB;
@@ -249,13 +232,14 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 					useProperty.boolValue = !useProperty.boolValue;
 
 					if (useProperty.boolValue) {
-						var minProperty = target.FindPropertyRelative(PitchRangeMinName);
-						var maxProperty = target.FindPropertyRelative(PitchRangeMaxName);
+						var rangeProperty = target.FindPropertyRelative(PitchRangeName);
+						var minProperty = rangeProperty.FindPropertyRelative(PitchRangeMinName);
+						var maxProperty = rangeProperty.FindPropertyRelative(PitchRangeMaxName);
 
 						if (minProperty.intValue == 0 && maxProperty.intValue == 0) {
 							minProperty.intValue = DefaultPitchRangeMin;
 							maxProperty.intValue = DefaultPitchRangeMax;
-							target.FindPropertyRelative(PitchRangeStepName).intValue = DefaultPitchRangeStep;
+							rangeProperty.FindPropertyRelative(PitchRangeStepName).intValue = DefaultPitchRangeStep;
 						}
 
 						// Pitch range has priority over the list - only one of both should be used.
@@ -297,7 +281,65 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 			menu.DropDown(rect);
 		}
 
-		private static void DrawMinMaxRange(Rect position, GUIContent label, SerializedProperty minProperty, SerializedProperty maxProperty, SerializedProperty stepProperty, float limitMin, float limitMax, bool isInt)
+	}
+
+	[CustomPropertyDrawer(typeof(VolumeRange))]
+	internal class VolumeRangePropertyDrawer : PropertyDrawer
+	{
+		// Always drawn on a single line - no foldout for the children.
+		public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => EditorGUIUtility.singleLineHeight;
+
+		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+		{
+			label = EditorGUI.BeginProperty(position, label, property);
+
+			AudioRangeDrawerUtils.DrawMinMaxRange(
+				position,
+				label,
+				property.FindPropertyRelative(nameof(VolumeRange.MinDB)),
+				property.FindPropertyRelative(nameof(VolumeRange.MaxDB)),
+				property.FindPropertyRelative(nameof(VolumeRange.StepDB)),
+				AudioPlayerUtils.MinVolumeRangeDB,
+				AudioPlayerUtils.MaxVolumeRangeDB
+				);
+
+			EditorGUI.EndProperty();
+		}
+	}
+
+	[CustomPropertyDrawer(typeof(PitchRange))]
+	internal class PitchRangePropertyDrawer : PropertyDrawer
+	{
+		// Always drawn on a single line - no foldout for the children.
+		public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => EditorGUIUtility.singleLineHeight;
+
+		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+		{
+			label = EditorGUI.BeginProperty(position, label, property);
+
+			AudioRangeDrawerUtils.DrawMinMaxRange(
+				position,
+				label,
+				property.FindPropertyRelative(nameof(PitchRange.Min)),
+				property.FindPropertyRelative(nameof(PitchRange.Max)),
+				property.FindPropertyRelative(nameof(PitchRange.Step)),
+				AudioPlayerUtils.MinPitchRangeCents,
+				AudioPlayerUtils.MaxPitchRangeCents
+				);
+
+			EditorGUI.EndProperty();
+		}
+	}
+
+	/// <summary>
+	/// Draws a randomization range on a single line: label, min field, min-max slider, max field and step field.
+	/// </summary>
+	internal static class AudioRangeDrawerUtils
+	{
+		private const float RangeFieldWidth = 54f;
+		private const float RangePadding = 4f;
+
+		public static void DrawMinMaxRange(Rect position, GUIContent label, SerializedProperty minProperty, SerializedProperty maxProperty, SerializedProperty stepProperty, int limitMin, int limitMax)
 		{
 			position = EditorGUI.PrefixLabel(position, label);
 
@@ -306,10 +348,10 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 
 			float fieldWidth = Mathf.Min(RangeFieldWidth, (position.width - RangePadding * 2f) / 3f);
 
-			var minRect = new Rect(position.x, position.y, fieldWidth, position.height);
-			var stepRect = new Rect(position.xMax - fieldWidth, position.y, fieldWidth, position.height);
-			var maxRect = new Rect(stepRect.x - RangePadding - fieldWidth, position.y, fieldWidth, position.height);
-			var sliderRect = new Rect(minRect.xMax + RangePadding, position.y, maxRect.x - minRect.xMax - RangePadding * 2f, position.height);
+			var minRect = new Rect(position.x, position.y, fieldWidth, EditorGUIUtility.singleLineHeight);
+			var stepRect = new Rect(position.xMax - fieldWidth, position.y, fieldWidth, EditorGUIUtility.singleLineHeight);
+			var maxRect = new Rect(stepRect.x - RangePadding - fieldWidth, position.y, fieldWidth, EditorGUIUtility.singleLineHeight);
+			var sliderRect = new Rect(minRect.xMax + RangePadding, position.y, maxRect.x - minRect.xMax - RangePadding * 2f, EditorGUIUtility.singleLineHeight);
 
 			// Rolled values are snapped to this step, so tiny unnoticeable offsets can be avoided.
 			EditorGUI.PropertyField(stepRect, stepProperty, GUIContent.none);
@@ -322,43 +364,31 @@ namespace DevLocker.Audio.AudioPlayerUtils.Editor
 			EditorGUI.PropertyField(maxRect, maxProperty, GUIContent.none);
 			bool maxChanged = EditorGUI.EndChangeCheck();
 
-			float minValue = isInt ? minProperty.intValue : minProperty.floatValue;
-			float maxValue = isInt ? maxProperty.intValue : maxProperty.floatValue;
-
 			// Keep min below max, without fighting the user while typing in the other field.
-			if (minChanged && minValue > maxValue) {
-				maxValue = minValue;
-				SetRangeValues(minProperty, maxProperty, minValue, maxValue, isInt);
+			if (minChanged && minProperty.intValue > maxProperty.intValue) {
+				maxProperty.intValue = minProperty.intValue;
 			}
-			if (maxChanged && maxValue < minValue) {
-				minValue = maxValue;
-				SetRangeValues(minProperty, maxProperty, minValue, maxValue, isInt);
+			if (maxChanged && maxProperty.intValue < minProperty.intValue) {
+				minProperty.intValue = maxProperty.intValue;
 			}
+
+			float minValue = minProperty.intValue;
+			float maxValue = maxProperty.intValue;
 
 			// Manually typed-in values may be outside the slider limits - don't clamp them silently.
-			limitMin = Mathf.Min(limitMin, minValue);
-			limitMax = Mathf.Max(limitMax, maxValue);
+			float sliderLimitMin = Mathf.Min(limitMin, minValue);
+			float sliderLimitMax = Mathf.Max(limitMax, maxValue);
 
 			if (sliderRect.width > 10f) {
 				EditorGUI.BeginChangeCheck();
-				EditorGUI.MinMaxSlider(sliderRect, ref minValue, ref maxValue, limitMin, limitMax);
+				EditorGUI.MinMaxSlider(sliderRect, ref minValue, ref maxValue, sliderLimitMin, sliderLimitMax);
 				if (EditorGUI.EndChangeCheck()) {
-					SetRangeValues(minProperty, maxProperty, minValue, maxValue, isInt);
+					minProperty.intValue = Mathf.RoundToInt(minValue);
+					maxProperty.intValue = Mathf.RoundToInt(maxValue);
 				}
 			}
 
 			EditorGUI.indentLevel = prevIndent;
-		}
-
-		private static void SetRangeValues(SerializedProperty minProperty, SerializedProperty maxProperty, float minValue, float maxValue, bool isInt)
-		{
-			if (isInt) {
-				minProperty.intValue = Mathf.RoundToInt(minValue);
-				maxProperty.intValue = Mathf.RoundToInt(maxValue);
-			} else {
-				minProperty.floatValue = minValue;
-				maxProperty.floatValue = maxValue;
-			}
 		}
 	}
 }
