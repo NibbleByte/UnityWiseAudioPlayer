@@ -167,7 +167,7 @@ namespace DevLocker.Audio
 
 		void OnValidate()
 		{
-			AudioPlayerUtils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
+			Utils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
 
 			RepeatPattern.OnValidate(this);
 

@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace DevLocker.Audio.AudioPlayerUtils
+namespace DevLocker.Audio.Utils
 {
 	/// <summary>
 	/// Shared constants and helpers used by the audio data helper structs below

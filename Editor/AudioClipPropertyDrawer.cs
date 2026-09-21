@@ -4,7 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace DevLocker.Audio.Editor
+namespace DevLocker.Audio.Utils.Editor
 {
 	/// <summary>
 	/// Draw "P" play button next to the reference.

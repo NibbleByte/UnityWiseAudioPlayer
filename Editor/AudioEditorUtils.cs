@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 #endif
 
-namespace DevLocker.Audio.Editor
+namespace DevLocker.Audio.Utils.Editor
 {
 	/// <summary>
 	/// Audio utilities.

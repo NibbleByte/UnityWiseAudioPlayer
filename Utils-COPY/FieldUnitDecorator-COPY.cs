@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DevLocker.Audio.AudioPlayerUtils
+namespace DevLocker.Audio.Utils
 {
 	/// <summary>
 	/// HACK: THIS IS COPY-PASTE FROM THE DevLocker.Utils at https://github.com/NibbleByte/DevLocker
