@@ -26,19 +26,20 @@ namespace DevLocker.Audio.AudioPlayerUtils
 		public const int MaxPitchRangeCents = 1200;
 
 		public const string VolumeDBHint = "Decibels in range [-80, 0]";
-		public const string VolumeRangeHint = "Random volume offset in whole decibels, rolled on every play and added on top of the constant volume.\nThe final volume is clamped to [-80, 0] dB.";
-		public const string PitchRangeHint = "A pitch will randomly be selected from this range.\nHas priority over the pitches list - if used, the list is ignored.\n\n" + AudioPlayerAsset.CentPitchHint;
+		public const string VolumeRangeHint = "Random volume offset in whole decibels, rolled on every play and added on top of the clip volume.\nThe final volume is clamped to [-80, 0] dB.";
+		public const string PitchRangeHint = "Random pitch offset in cents, rolled on every play and added on top of the clip pitch.\n\n" + AudioPlayerAsset.CentPitchHint;
+		public const string UsePitchRangeHint = "A pitch will randomly be selected from this range.\nHas priority over the pitches list - if used, the list is ignored.\n\n" + AudioPlayerAsset.CentPitchHint;
 		public const string RangeStepHint = "Roll only values divisible by this step (positive or negative), so the randomization is noticeable enough.\nExample: range [-200, 200] with step 100 rolls -200, -100, 0, 100 or 200.\n\n0 means no step - any value in the range.";
 
 		/// <summary>
-		/// Roll the volume randomization range (if used) on top of the constant volume. Result is in decibels.
+		/// Roll the volume randomization range (if used) on top of the constant volume, plus any additional offset
+		/// (for example rolled by the conductor itself). Result is in decibels.
 		/// </summary>
-		public static float RollVolumeDB(float volumeDB, bool useVolumeRange, int rangeMinDB, int rangeMaxDB, int rangeStepDB)
+		public static float RollVolumeDB(float volumeDB, bool useVolumeRange, VolumeRange volumeRange, int extraOffsetDB = 0)
 		{
-			if (!useVolumeRange)
-				return volumeDB;
+			int offsetDB = extraOffsetDB + (useVolumeRange ? volumeRange.Roll() : 0);
 
-			return Mathf.Clamp(volumeDB + RollRange(rangeMinDB, rangeMaxDB, rangeStepDB), MinVolumeDB, MaxVolumeDB);
+			return Mathf.Clamp(volumeDB + offsetDB, MinVolumeDB, MaxVolumeDB);
 		}
 
 		/// <summary>
@@ -69,6 +70,52 @@ namespace DevLocker.Audio.AudioPlayerUtils
 	}
 
 	/// <summary>
+	/// Random volume offset in whole decibels. Roll it once per play.
+	/// </summary>
+	[Serializable]
+	public struct VolumeRange
+	{
+		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
+		public int MinDB;
+
+		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
+		public int MaxDB;
+
+		[FieldUnitDecorator("dB", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
+		public int StepDB;
+
+		public bool IsUsed => MinDB != 0 || MaxDB != 0;
+
+		/// <summary>
+		/// Random volume offset in decibels - rolls a new value on every call.
+		/// </summary>
+		public int Roll() => AudioPlayerUtils.RollRange(MinDB, MaxDB, StepDB);
+	}
+
+	/// <summary>
+	/// Random pitch offset in cents. Roll it once per play.
+	/// </summary>
+	[Serializable]
+	public struct PitchRange
+	{
+		[FieldUnitDecorator("ct", AudioPlayerUtils.PitchRangeHint)]
+		public int Min;
+
+		[FieldUnitDecorator("ct", AudioPlayerUtils.PitchRangeHint)]
+		public int Max;
+
+		[FieldUnitDecorator("ct", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
+		public int Step;
+
+		public bool IsUsed => Min != 0 || Max != 0;
+
+		/// <summary>
+		/// Random pitch offset in cents - rolls a new value on every call.
+		/// </summary>
+		public int Roll() => AudioPlayerUtils.RollRange(Min, Max, Step);
+	}
+
+	/// <summary>
 	/// Use in conductors to show audio with volume.
 	/// </summary>
 	[Serializable]
@@ -87,22 +134,17 @@ namespace DevLocker.Audio.AudioPlayerUtils
 		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
 		public bool UseVolumeRange;
 
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMinDB;
-
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMaxDB;
-
-		[FieldUnitDecorator("dB", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
-		public int VolumeRangeStepDB;
+		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
+		public VolumeRange VolumeRange;
 
 		/// <summary>
 		/// Volume to be used for a single playback - rolls the randomization range if used, so call it only once per play.
+		/// Pass any additional offset in decibels (for example rolled by the conductor itself).
 		/// </summary>
-		public float GetPlayVolume() => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB());
+		public float GetPlayVolume(int extraOffsetDB = 0) => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB(extraOffsetDB));
 
 		/// <inheritdoc cref="GetPlayVolume"/>
-		public float GetPlayVolumeDB() => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRangeMinDB, VolumeRangeMaxDB, VolumeRangeStepDB);
+		public float GetPlayVolumeDB(int extraOffsetDB = 0) => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRange, extraOffsetDB);
 	}
 
 	/// <summary>
@@ -125,22 +167,17 @@ namespace DevLocker.Audio.AudioPlayerUtils
 		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
 		public bool UseVolumeRange;
 
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMinDB;
-
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMaxDB;
-
-		[FieldUnitDecorator("dB", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
-		public int VolumeRangeStepDB;
+		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
+		public VolumeRange VolumeRange;
 
 		/// <summary>
 		/// Volume to be used for a single playback - rolls the randomization range if used, so call it only once per play.
+		/// Pass any additional offset in decibels (for example rolled by the conductor itself).
 		/// </summary>
-		public float GetPlayVolume() => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB());
+		public float GetPlayVolume(int extraOffsetDB = 0) => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB(extraOffsetDB));
 
 		/// <inheritdoc cref="GetPlayVolume"/>
-		public float GetPlayVolumeDB() => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRangeMinDB, VolumeRangeMaxDB, VolumeRangeStepDB);
+		public float GetPlayVolumeDB(int extraOffsetDB = 0) => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRange, extraOffsetDB);
 	}
 
 	/// <summary>
@@ -163,26 +200,14 @@ namespace DevLocker.Audio.AudioPlayerUtils
 		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
 		public bool UseVolumeRange;
 
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMinDB;
+		[Tooltip(AudioPlayerUtils.VolumeRangeHint)]
+		public VolumeRange VolumeRange;
 
-		[FieldUnitDecorator("dB", AudioPlayerUtils.VolumeRangeHint)]
-		public int VolumeRangeMaxDB;
-
-		[FieldUnitDecorator("dB", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
-		public int VolumeRangeStepDB;
-
-		[Tooltip(AudioPlayerUtils.PitchRangeHint)]
+		[Tooltip(AudioPlayerUtils.UsePitchRangeHint)]
 		public bool UsePitchRange;
 
-		[FieldUnitDecorator("ct", AudioPlayerUtils.PitchRangeHint)]
-		public int PitchRangeMin;
-
-		[FieldUnitDecorator("ct", AudioPlayerUtils.PitchRangeHint)]
-		public int PitchRangeMax;
-
-		[FieldUnitDecorator("ct", AudioPlayerUtils.RangeStepHint, MinValue = 0f)]
-		public int PitchRangeStep;
+		[Tooltip(AudioPlayerUtils.UsePitchRangeHint)]
+		public PitchRange PitchRange;
 
 		[Tooltip("A pitch will randomly be selected from this list.\nIgnored if the pitch range is used.\n\n" + AudioPlayerAsset.CentPitchHint)]
 		[FieldUnitDecorator("ct", "Cents")]
@@ -190,11 +215,12 @@ namespace DevLocker.Audio.AudioPlayerUtils
 
 		/// <summary>
 		/// Volume to be used for a single playback - rolls the randomization range if used, so call it only once per play.
+		/// Pass any additional offset in decibels (for example rolled by the conductor itself).
 		/// </summary>
-		public float GetPlayVolume() => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB());
+		public float GetPlayVolume(int extraOffsetDB = 0) => AudioVolumeUtils.DecibelToFloat(GetPlayVolumeDB(extraOffsetDB));
 
 		/// <inheritdoc cref="GetPlayVolume"/>
-		public float GetPlayVolumeDB() => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRangeMinDB, VolumeRangeMaxDB, VolumeRangeStepDB);
+		public float GetPlayVolumeDB(int extraOffsetDB = 0) => AudioPlayerUtils.RollVolumeDB(VolumeDB, UseVolumeRange, VolumeRange, extraOffsetDB);
 
 		public bool HasPitchesList => Pitches != null && Pitches.Length > 0;
 
@@ -206,16 +232,17 @@ namespace DevLocker.Audio.AudioPlayerUtils
 
 		/// <summary>
 		/// Select a random pitch in cents. The pitch range has priority over the pitches list.
+		/// Pass any additional offset in cents (for example rolled by the conductor itself).
 		/// </summary>
-		public int GetRandomPitch()
+		public int GetRandomPitch(int extraOffsetCents = 0)
 		{
 			if (UsePitchRange)
-				return AudioPlayerUtils.RollRange(PitchRangeMin, PitchRangeMax, PitchRangeStep);
+				return PitchRange.Roll() + extraOffsetCents;
 
 			if (HasPitchesList)
-				return Pitches[UnityEngine.Random.Range(0, Pitches.Length)];
+				return Pitches[UnityEngine.Random.Range(0, Pitches.Length)] + extraOffsetCents;
 
-			return 0;
+			return extraOffsetCents;
 		}
 	}
 }

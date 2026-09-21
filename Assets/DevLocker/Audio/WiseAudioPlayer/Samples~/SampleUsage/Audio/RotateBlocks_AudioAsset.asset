@@ -34,39 +34,53 @@ MonoBehaviour:
         StopPlayingSound: 0
         Mode: 2
         AvoidRepeatingLast: 2
+        VolumeRange:
+          MinDB: 0
+          MaxDB: 0
+          StepDB: 0
+        PitchRange:
+          Min: 0
+          Max: 0
+          Step: 0
         AudioClips:
         - Clip: {fileID: 8300000, guid: 863bdb6e0f1ebf14f954fa4849f4fe9f, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
         - Clip: {fileID: 8300000, guid: 1cc5f8b43d9bd334888409ea52348322, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
         - Clip: {fileID: 8300000, guid: 59da62157b20fc14197ff31f9a8d6151, type: 3}
           VolumeDB: -5
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
           UsePitchRange: 0
-          PitchRangeMin: 0
-          PitchRangeMax: 0
-          PitchRangeStep: 0
+          PitchRange:
+            Min: 0
+            Max: 0
+            Step: 0
           Pitches: 
     - rid: 8526195423432933557
       type: {class: CooldownFilter, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}

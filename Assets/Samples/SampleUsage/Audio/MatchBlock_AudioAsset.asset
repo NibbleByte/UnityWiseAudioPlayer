@@ -34,9 +34,10 @@ MonoBehaviour:
           Clip: {fileID: 8300000, guid: 17b360976673bf44da7edc4b0291111c, type: 3}
           VolumeDB: 0
           UseVolumeRange: 0
-          VolumeRangeMinDB: 0
-          VolumeRangeMaxDB: 0
-          VolumeRangeStepDB: 0
+          VolumeRange:
+            MinDB: 0
+            MaxDB: 0
+            StepDB: 0
         ResetOnSequenceEnd: 0
         ResetAfterSeconds: 1
         PitchSequence: 0000000064000000c80000002c01000090010000f401000058020000bc0200002003000084030000e80300004c040000b0040000
