@@ -89,17 +89,17 @@ namespace DevLocker.Audio
 		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
 
 
-		public IEnumerator Play(AudioSourcePlayer player, object context)
+		public IEnumerator Play(AudioSourcePlayer player, AudioSource source, object context)
 		{
 			switch (RepeatPattern.Pattern) {
 				case AudioSourcePlayer.RepeatPatternType.Once:
-					player.AudioSource.loop = false;
+					source.loop = false;
 					break;
 				case AudioSourcePlayer.RepeatPatternType.Loop:
-					player.AudioSource.loop = true;
+					source.loop = true;
 					break;
 				case AudioSourcePlayer.RepeatPatternType.RepeatInterval:
-					player.AudioSource.loop = false;
+					source.loop = false;
 					break;
 				default:
 					throw new NotSupportedException();
@@ -120,7 +120,7 @@ namespace DevLocker.Audio
 					// NOTE: PlayOneShot() is not looped by the audio source so we must handle it ourselves.
 					if (RepeatPattern.IsLooping && (playConductor == null || !playConductor.StopPlayingSound)) {
 						assetCustomLoop = true;
-						player.AudioSource.loop = false;
+						source.loop = false;
 					}
 
 					yield return conductorBind.Conductor.Play(player, this);
@@ -140,7 +140,7 @@ namespace DevLocker.Audio
 				if (assetCustomLoop) {
 					do {
 						yield return null;
-					} while (player && (player.AudioSource.isPlaying || player.IsPaused));
+					} while (player && (source.isPlaying || player.IsPaused));
 
 					if (player == null)
 						yield break;
@@ -156,7 +156,7 @@ namespace DevLocker.Audio
 						if (player == null)
 							yield break;
 
-						if (!player.IsPaused && !player.AudioSource.isPlaying) {
+						if (!player.IsPaused && !source.isPlaying) {
 							passedTime += Time.deltaTime;
 						}
 					}

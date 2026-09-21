@@ -92,15 +92,15 @@ namespace DevLocker.Audio.Editor
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer player) => AddAction(ActionType.Play, player);
+		private void OnPlayStarted(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Play, player, audioSource);
 
-		private void OnPlayStopped(AudioSourcePlayer player) => AddAction(ActionType.Stop, player);
+		private void OnPlayStopped(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Stop, player, audioSource);
 
-		private void OnPlayPaused(AudioSourcePlayer player) => AddAction(ActionType.Pause, player);
+		private void OnPlayPaused(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Pause, player, audioSource);
 
-		private void OnPlayUnpaused(AudioSourcePlayer player) => AddAction(ActionType.UnPause, player);
+		private void OnPlayUnpaused(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.UnPause, player, audioSource);
 
-		private void AddAction(ActionType actionType, AudioSourcePlayer player)
+		private void AddAction(ActionType actionType, AudioSourcePlayer player, AudioSource audioSource)
 		{
 			if (!m_ListenForEvents)
 				return;
@@ -114,7 +114,7 @@ namespace DevLocker.Audio.Editor
 				Time = Time.time,
 
 				Player = player,
-				Resource = player.AudioReference.AudioResource ?? player.AudioSource?.resource,
+				Resource = player.AudioReference.AudioResource ?? audioSource?.resource,
 				MixerGroup = player.EffectiveOutput,
 				Template = player.EffectiveTemplate,
 
@@ -122,7 +122,7 @@ namespace DevLocker.Audio.Editor
 				PlayOnEnable = player.PlayOnEnable,
 
 				RepeatPattern = player.EffectiveRepeatPattern.Pattern,
-				Volume = player.AudioSource?.volume ?? player.Volume,	// Conductors may change audio source volume directly.
+				Volume = audioSource?.volume ?? player.Volume,	// Conductors may change audio source volume directly.
 				Pitch = player.Pitch,
 				SpatialBlend = player.SpatialBlend,
 
