@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DevLocker.Audio.AudioPlayerUtils;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -781,7 +782,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(AudioPlayerAsset.ClipWithVolume clipPair, bool playAsOneShot)
+		public virtual void PlayDirectClip(ClipWithVolume clipPair, bool playAsOneShot)
 		{
 			if (AudioSource == null)
 				return;
@@ -790,11 +791,15 @@ namespace DevLocker.Audio
 
 			// This bypasses the AudioResource property.
 			AudioSource.clip = clipPair.Clip;
+
+			// Rolls the volume randomization range (if used), so call it only once.
+			float volume = clipPair.GetPlayVolume();
+
 			if (playAsOneShot) {
-				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
+				AudioSource.PlayOneShot(clipPair.Clip, volume * m_Volume);
 			} else {
 				if (m_VolumeCoroutine == null) {
-					AudioSource.volume = clipPair.Volume * m_Volume;
+					AudioSource.volume = volume * m_Volume;
 				}
 				AudioSource.Play();
 			}
@@ -806,7 +811,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(AudioPlayerAsset.ClipWithVolumePitch clipPair, bool playAsOneShot)
+		public virtual void PlayDirectClip(ClipWithVolumePitch clipPair, bool playAsOneShot)
 		{
 			if (AudioSource == null)
 				return;
@@ -816,15 +821,19 @@ namespace DevLocker.Audio
 			// This bypasses the AudioResource property.
 			AudioSource.clip = clipPair.Clip;
 
-			if (clipPair.HasPitches) {
+			// Pitch range has priority over the pitches list.
+			if (clipPair.HasPitchVariation) {
 				AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, clipPair.GetRandomPitch());
 			}
 
+			// Rolls the volume randomization range (if used), so call it only once.
+			float volume = clipPair.GetPlayVolume();
+
 			if (playAsOneShot) {
-				AudioSource.PlayOneShot(clipPair.Clip, clipPair.Volume * m_Volume);
+				AudioSource.PlayOneShot(clipPair.Clip, volume * m_Volume);
 			} else {
 				if (m_VolumeCoroutine == null) {
-					AudioSource.volume = clipPair.Volume * m_Volume;
+					AudioSource.volume = volume * m_Volume;
 				}
 				AudioSource.Play();
 			}
@@ -854,7 +863,7 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectResource(AudioPlayerAsset.ResourceWithVolume resourcePair)
+		public virtual void PlayDirectResource(ResourceWithVolume resourcePair)
 		{
 			if (AudioSource == null)
 				return;
@@ -863,8 +872,10 @@ namespace DevLocker.Audio
 
 			// This bypasses the AudioResource property.
 			AudioSource.resource = resourcePair.Resource;
+
 			if (m_VolumeCoroutine == null) {
-				AudioSource.volume = resourcePair.Volume * m_Volume;
+				// Rolls the volume randomization range (if used).
+				AudioSource.volume = resourcePair.GetPlayVolume() * m_Volume;
 			}
 			AudioSource.Play();
 

@@ -47,61 +47,6 @@ namespace DevLocker.Audio
 			public virtual void OnValidate(AudioPlayerAsset context) { }
 		}
 
-		#region Data helpers
-
-		/// <summary>
-		/// Use in conductors to show audio with volume.
-		/// </summary>
-		[Serializable]
-		public struct ResourceWithVolume
-		{
-			public AudioResource Resource;
-
-			public float Volume => AudioVolumeUtils.DecibelToFloat(VolumeDB);
-
-			[Utils.FieldUnitDecorator("dB", "Decibels in range [-80, 0]", MinValue = -80f, MaxValue = 0f)]
-			public float VolumeDB;
-		}
-
-		/// <summary>
-		/// Use in conductors to show audio with volume.
-		/// HINT: also check <see cref="ClipWithVolumePitch"/>
-		/// </summary>
-		[Serializable]
-		public struct ClipWithVolume
-		{
-			public AudioClip Clip;
-
-			public float Volume => AudioVolumeUtils.DecibelToFloat(VolumeDB);
-
-			[Utils.FieldUnitDecorator("dB", "Decibels in range [-80, 0]", MinValue = -80f, MaxValue = 0f)]
-			public float VolumeDB;
-		}
-
-		/// <summary>
-		/// Use in conductors to show audio with volume.
-		/// HINT: also check <see cref="ClipWithVolume"/>
-		/// </summary>
-		[Serializable]
-		public struct ClipWithVolumePitch
-		{
-			public AudioClip Clip;
-
-			public float Volume => AudioVolumeUtils.DecibelToFloat(VolumeDB);
-
-			[Utils.FieldUnitDecorator("dB", "Decibels in range [-80, 0]", MinValue = -80f, MaxValue = 0f)]
-			public float VolumeDB;
-
-			[Tooltip(CentPitchHint + "\n\nA pitch will randomly be selected from this list.")]
-			[Utils.FieldUnitDecorator("ct", "Cents")]
-			public int[] Pitches;
-
-			public bool HasPitches => Pitches != null && Pitches.Length > 0;
-			public int GetRandomPitch() => HasPitches ? Pitches[UnityEngine.Random.Range(0, Pitches.Length)] : 0;
-		}
-
-		#endregion
-
 		public enum ConductorsStateStorageLocation
 		{
 			Asset,
@@ -222,7 +167,7 @@ namespace DevLocker.Audio
 
 		void OnValidate()
 		{
-			Utils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
+			AudioPlayerUtils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
 
 			RepeatPattern.OnValidate(this);
 
