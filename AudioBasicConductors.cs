@@ -253,15 +253,15 @@ namespace DevLocker.Audio.Conductors
 
 		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
-			player.PlayDirectClip(Intro, playAsOneShot: true, Volume);
+			AudioSource audioSource = player.PlayDirectClip(Intro, playAsOneShot: true, Volume);
 
-			player.AudioSource.volume = Volume * player.Volume;	// OneShot is volume is passed as argument, not changing the source.
+			audioSource.volume = Volume * player.Volume;	// OneShot is volume is passed as argument, not changing the source.
 
-			player.AudioSource.resource = Looped;
-			player.AudioSource.loop = true;
+			audioSource.resource = Looped;
+			audioSource.loop = true;
 
 			double introLengthDouble = (double)Intro.samples / (double)Intro.frequency; // This is more accurate than clip.float.
-			player.AudioSource.PlayScheduled(AudioSettings.dspTime + introLengthDouble - Overlap);
+			audioSource.PlayScheduled(AudioSettings.dspTime + introLengthDouble - Overlap);
 
 			yield break;
 		}

@@ -94,7 +94,7 @@ namespace DevLocker.Audio
 			}
 		}
 
-		public delegate void PlayerEventHandler(AudioSourcePlayer player);
+		public delegate void PlayerEventHandler(AudioSourcePlayer player, AudioSource source);
 		public static event PlayerEventHandler PlayStarted;
 		public static event PlayerEventHandler PlayPaused;
 		public static event PlayerEventHandler PlayUnpaused;
@@ -386,46 +386,44 @@ namespace DevLocker.Audio
 		public bool IsPlayingOrPaused => IsPaused || IsPlaying;
 
 		[ContextMenu("Play")]
-		public virtual void Play()
+		public virtual AudioSource Play()
 		{
-			PlayImpl(0f);
+			return PlayImpl(0f);
 		}
 
-		public virtual void PlayDelayed(float delaySeconds)
+		public virtual AudioSource PlayDelayed(float delaySeconds)
 		{
-			PlayImpl(delaySeconds);
+			return PlayImpl(delaySeconds);
 		}
 
 		/// <summary>
 		/// Can be used for animation event to play given <see cref="AudioPlayerAsset"/>.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayAudioAsset(AudioPlayerAsset asset)
+		public virtual AudioSource PlayAudioAsset(AudioPlayerAsset asset)
 		{
-			if (AudioSource == null)
-				return;
-
 			AudioReference = new AudioReferenceProperty(asset);
 			Play();
+
+			return AudioSource;
 		}
 
 		/// <summary>
 		/// Can be used for animation event to play given <see cref="AudioReferenceProperty"/>.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayAudioReference(AudioReferenceProperty audioReference)
+		public virtual AudioSource PlayAudioReference(AudioReferenceProperty audioReference)
 		{
-			if (AudioSource == null)
-				return;
-
 			audioReference.OnValidate(this);
 
 			// Assign and play normally so it shows up in the Audio Monitor.
 			AudioReference = audioReference;
 			Play();
+
+			return AudioSource;
 		}
 
-		private void PlayImpl(float delay)
+		private AudioSource PlayImpl(float delay)
 		{
 			m_ShouldPlayRepeating = true;
 			IsPaused = false;
@@ -435,7 +433,7 @@ namespace DevLocker.Audio
 
 			if (m_AudioReference.AudioAsset != null) {
 				m_ConductorCoroutine = StartCoroutine(StartAudioAsset(delay));
-				PlayStarted?.Invoke(this);
+				PlayStarted?.Invoke(this, AudioSource);
 
 			} else {
 
@@ -448,21 +446,25 @@ namespace DevLocker.Audio
 				}
 
 				LastPlayTime = Time.time;
-				PlayStarted?.Invoke(this);
+				PlayStarted?.Invoke(this, AudioSource);
 			}
+
+			return AudioSource;
 		}
 
-		public virtual void PlayOneShot(AudioClip clip, float volume = 1.0f)
+		public virtual AudioSource PlayOneShot(AudioClip clip, float volume = 1.0f)
 		{
 			StopVolumeCrt();
 			StopConductorCrt();
 
 			PlayDirectClip(clip, playAsOneShot: true, volume);
 
-			PlayStarted?.Invoke(this);    // So it shows up on the audio monitor.
+			PlayStarted?.Invoke(this, AudioSource);    // So it shows up on the audio monitor.
+
+			return AudioSource;
 		}
 
-		public virtual void PlayOnGamepad(int playerIndex)
+		public virtual AudioSource PlayOnGamepad(int playerIndex)
 		{
 #if UNITY_EDITOR
 			m_ShouldPlayRepeating = true;
@@ -474,7 +476,11 @@ namespace DevLocker.Audio
 			AudioSource.PlayOnGamepad(playerIndex); // This is not available for every platform (e.g. PC doesn't have it).
 
 			LastPlayTime = Time.time;
-			PlayStarted?.Invoke(this);
+			PlayStarted?.Invoke(this, AudioSource);
+
+			return AudioSource;
+#else
+			return null;
 #endif
 		}
 
@@ -506,7 +512,7 @@ namespace DevLocker.Audio
 				AudioSource.Stop();
 			}
 
-			PlayStopped?.Invoke(this);
+			PlayStopped?.Invoke(this, AudioSource);
 		}
 
 		[ContextMenu("Pause")]
@@ -533,7 +539,7 @@ namespace DevLocker.Audio
 				AudioSource.Pause();
 			}
 
-			PlayPaused?.Invoke(this);
+			PlayPaused?.Invoke(this, AudioSource);
 		}
 
 		[ContextMenu("UnPause")]
@@ -561,7 +567,7 @@ namespace DevLocker.Audio
 				AudioSource.UnPause();
 			}
 
-			PlayUnpaused?.Invoke(this);
+			PlayUnpaused?.Invoke(this, AudioSource);
 		}
 
 		/// <summary>
@@ -590,7 +596,7 @@ namespace DevLocker.Audio
 				}
 				m_VolumeCoroutine = StartCoroutine(FadeVolumeCrt(InterruptionFadeDuration, false, destroyAction));
 
-				PlayStopped?.Invoke(this);
+				PlayStopped?.Invoke(this, AudioSource);
 
 			} else {
 				StopVolumeCrt();
@@ -598,7 +604,7 @@ namespace DevLocker.Audio
 
 				AudioSource.Stop();
 
-				PlayStopped?.Invoke(this);
+				PlayStopped?.Invoke(this, AudioSource);
 				destroyAction();
 			}
 		}
@@ -614,12 +620,16 @@ namespace DevLocker.Audio
 			if (Quick2DPlayer == null) {
 				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
 				Quick2DPlayer.PlayOnEnable = false;
-				Quick2DPlayer.AudioSource.spatialBlend = 0;
+
+				var templateSource = Quick2DPlayer.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 0;
+
+				Quick2DPlayer.Template = templateSource;
 			}
 
-			Quick2DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+			AudioSource audioSource = Quick2DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
 
-			PlayStarted?.Invoke(Quick2DPlayer); // So it shows up on the audio monitor.
+			PlayStarted?.Invoke(Quick2DPlayer, audioSource); // So it shows up on the audio monitor.
 		}
 
 		/// <summary>
@@ -631,7 +641,11 @@ namespace DevLocker.Audio
 			if (Quick2DPlayer == null) {
 				Quick2DPlayer = new GameObject("2D Audio Player").AddComponent<AudioSourcePlayer>();
 				Quick2DPlayer.PlayOnEnable = false;
-				Quick2DPlayer.AudioSource.spatialBlend = 0;
+
+				var templateSource = Quick2DPlayer.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 0;
+
+				Quick2DPlayer.Template = templateSource;
 			}
 
 			Quick2DPlayer.AudioReference = new AudioReferenceProperty(asset);
@@ -649,12 +663,16 @@ namespace DevLocker.Audio
 			if (player == null) {
 				player = gameObject.AddComponent<AudioSourcePlayer>();
 				player.PlayOnEnable = false;
-				player.AudioSource.spatialBlend = 0;
+
+				var templateSource = player.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 0;
+
+				player.Template = templateSource;
 			}
 
-			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+			AudioSource audioSource = player.PlayDirectClip(clip, playAsOneShot: true, volume);
 
-			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
+			PlayStarted?.Invoke(player, audioSource);    // So it shows up on the audio monitor.
 		}
 
 		/// <summary>
@@ -668,7 +686,11 @@ namespace DevLocker.Audio
 			if (player == null) {
 				player = gameObject.AddComponent<AudioSourcePlayer>();
 				player.PlayOnEnable = false;
-				player.AudioSource.spatialBlend = 0;
+
+				var templateSource = player.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 0;
+
+				player.Template = templateSource;
 			}
 
 			player.AudioReference = new AudioReferenceProperty(asset);
@@ -684,13 +706,17 @@ namespace DevLocker.Audio
 			if (Quick3DPlayer == null) {
 				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
 				Quick3DPlayer.PlayOnEnable = false;
-				Quick3DPlayer.AudioSource.spatialBlend = 1;
+
+				var templateSource = Quick3DPlayer.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 1;
+
+				Quick3DPlayer.Template = templateSource;
 			}
 
 			Quick3DPlayer.transform.position = position;
-			Quick3DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
+			AudioSource audioSource = Quick3DPlayer.PlayDirectClip(clip, playAsOneShot: true, volume);
 
-			PlayStarted?.Invoke(Quick3DPlayer); // So it shows up on the audio monitor.
+			PlayStarted?.Invoke(Quick3DPlayer, audioSource); // So it shows up on the audio monitor.
 		}
 
 		/// <summary>
@@ -702,7 +728,11 @@ namespace DevLocker.Audio
 			if (Quick3DPlayer == null) {
 				Quick3DPlayer = new GameObject("3D Audio Player").AddComponent<AudioSourcePlayer>();
 				Quick3DPlayer.PlayOnEnable = false;
-				Quick3DPlayer.AudioSource.spatialBlend = 1;
+
+				var templateSource = Quick3DPlayer.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 1;
+
+				Quick3DPlayer.Template = templateSource;
 			}
 
 			Quick3DPlayer.transform.position = position;
@@ -721,13 +751,17 @@ namespace DevLocker.Audio
 			if (player == null) {
 				player = gameObject.AddComponent<AudioSourcePlayer>();
 				player.PlayOnEnable = false;
-				player.AudioSource.spatialBlend = 1;
+
+				var templateSource = player.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 1;
+
+				player.Template = templateSource;
 			}
 
 			player.transform.position = position;
-			player.PlayDirectClip(clip, playAsOneShot: true, volume);
+			AudioSource audioSource = player.PlayDirectClip(clip, playAsOneShot: true, volume);
 
-			PlayStarted?.Invoke(player);    // So it shows up on the audio monitor.
+			PlayStarted?.Invoke(player, audioSource);    // So it shows up on the audio monitor.
 		}
 
 		/// <summary>
@@ -741,7 +775,11 @@ namespace DevLocker.Audio
 			if (player == null) {
 				player = gameObject.AddComponent<AudioSourcePlayer>();
 				player.PlayOnEnable = false;
-				player.AudioSource.spatialBlend = 1;
+
+				var templateSource = player.gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 1;
+
+				player.Template = templateSource;
 			}
 
 			player.transform.position = position;
@@ -757,10 +795,8 @@ namespace DevLocker.Audio
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(AudioClip clip, bool playAsOneShot, float volume = 1.0f, float pitch = 1.0f)
+		public virtual AudioSource PlayDirectClip(AudioClip clip, bool playAsOneShot, float volume = 1.0f, float pitch = 1.0f)
 		{
-			if (AudioSource == null)
-				return;
 			if (clip == null)
 				throw new ArgumentNullException();
 
@@ -778,16 +814,16 @@ namespace DevLocker.Audio
 			}
 
 			LastPlayTime = Time.time;
+
+			return AudioSource;
 		}
 
 		/// <summary>
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(ClipWithVolume clipPair, bool playAsOneShot, float pitch = 1.0f, int volumeOffsetDB = 0)
+		public virtual AudioSource PlayDirectClip(ClipWithVolume clipPair, bool playAsOneShot, float pitch = 1.0f, int volumeOffsetDB = 0)
 		{
-			if (AudioSource == null)
-				return;
 			if (clipPair.Clip == null)
 				throw new ArgumentNullException();
 
@@ -808,16 +844,16 @@ namespace DevLocker.Audio
 			}
 
 			LastPlayTime = Time.time;
+
+			return AudioSource;
 		}
 
 		/// <summary>
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectClip(ClipWithVolumePitch clipPair, bool playAsOneShot, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
+		public virtual AudioSource PlayDirectClip(ClipWithVolumePitch clipPair, bool playAsOneShot, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
 		{
-			if (AudioSource == null)
-				return;
 			if (clipPair.Clip == null)
 				throw new ArgumentNullException();
 
@@ -841,16 +877,16 @@ namespace DevLocker.Audio
 			}
 
 			LastPlayTime = Time.time;
+
+			return AudioSource;
 		}
 
 		/// <summary>
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectResource(AudioResource resource, float pitch = 1.0f)
+		public virtual AudioSource PlayDirectResource(AudioResource resource, float pitch = 1.0f)
 		{
-			if (AudioSource == null)
-				return;
 			if (resource == null)
 				throw new ArgumentNullException();
 
@@ -861,16 +897,16 @@ namespace DevLocker.Audio
 			AudioSource.Play();
 
 			LastPlayTime = Time.time;
+
+			return AudioSource;
 		}
 
 		/// <summary>
 		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing this component settings.
 		/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
-		public virtual void PlayDirectResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
+		public virtual AudioSource PlayDirectResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
 		{
-			if (AudioSource == null)
-				return;
 			if (resourcePair.Resource == null)
 				throw new ArgumentNullException();
 
@@ -885,6 +921,8 @@ namespace DevLocker.Audio
 			AudioSource.Play();
 
 			LastPlayTime = Time.time;
+
+			return AudioSource;
 		}
 
 		#endregion
@@ -907,7 +945,7 @@ namespace DevLocker.Audio
 			// Always overriden by the audio asset.
 			AudioSource.outputAudioMixerGroup = EffectiveOutput;
 
-			yield return m_AudioReference.AudioAsset.Play(this, ConductorsFilterContext);
+			yield return m_AudioReference.AudioAsset.Play(this, AudioSource, ConductorsFilterContext);
 
 			// Coroutine returns early, sound may still be playing - don't touch the mixer.
 			if (!m_AudioSource.isPlaying) {

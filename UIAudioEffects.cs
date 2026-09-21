@@ -56,8 +56,12 @@ namespace DevLocker.Audio
 				var templateSource = Template.GetComponent<AudioSource>();
 				if (templateSource) {
 					AudioPlayer.Template = templateSource;
+
 				} else {
-					AudioPlayer.AudioSource.spatialBlend = 0f;  // Make it 2D
+					templateSource = gameObject.AddComponent<AudioSource>();
+					templateSource.spatialBlend = 0f;   // Make it 2D
+
+					AudioPlayer.Template = templateSource;
 				}
 
 				SubmitAudio = SubmitAudio.HasValidReference ? SubmitAudio : Template.SubmitAudio;
@@ -70,7 +74,11 @@ namespace DevLocker.Audio
 				DeselectAudio = DeselectAudio.HasValidReference ? DeselectAudio : Template.DeselectAudio;
 
 			} else {
-				AudioPlayer.AudioSource.spatialBlend = 0f;	// Make it 2D
+
+				var templateSource = gameObject.AddComponent<AudioSource>();
+				templateSource.spatialBlend = 0f;	// Make it 2D
+
+				AudioPlayer.Template = templateSource;
 			}
 
 			// Add handler components instead of listening to ourselves.
