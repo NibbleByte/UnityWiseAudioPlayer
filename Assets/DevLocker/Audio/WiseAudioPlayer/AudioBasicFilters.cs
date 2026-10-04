@@ -16,7 +16,7 @@ namespace DevLocker.Audio.Conductors
 
 		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
 		{
-			if (Time.unscaledTime - player.LastPlayTime > CooldownSeconds) {
+			if (Time.unscaledTime - player.LastPlayTimeUnscaled > CooldownSeconds) {
 				return true;
 			}
 

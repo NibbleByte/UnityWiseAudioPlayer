@@ -126,7 +126,7 @@ namespace DevLocker.Audio
 					player.StopAllPlaybacksExcept(playback);
 					break;
 				case InterruptSoundsMode.InterruptPlayingSoundsFromThisAsset:
-					player.StopAllPlaybacksExcept(this, playback);
+					player.StopAllPlaybacksWithAsset(this, playback);
 					break;
 				default: throw new NotSupportedException(InterruptMode.ToString());
 			}
@@ -182,7 +182,7 @@ namespace DevLocker.Audio
 							yield break;
 
 						if (!player.IsPaused && !source.isPlaying) {
-							passedTime += Time.deltaTime;
+							passedTime += Time.unscaledDeltaTime;
 						}
 					}
 				}

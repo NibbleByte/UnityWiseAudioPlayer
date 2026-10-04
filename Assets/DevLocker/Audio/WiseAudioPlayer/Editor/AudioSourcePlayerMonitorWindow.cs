@@ -227,8 +227,7 @@ namespace DevLocker.Audio.Editor
 			EditorGUILayout.EndHorizontal();
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
-
-			var audioType = typeof(AudioResource);
+			
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];
@@ -241,7 +240,7 @@ namespace DevLocker.Audio.Editor
 					GUILayout.Label(action.Type.ToString(), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
 					EditorGUILayout.FloatField(action.Time, GUILayout.MaxWidth(timeColumnWidth));
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
-					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.ExpandWidth(true));
+					EditorGUILayout.ObjectField(action.Resource, typeof(AudioResource), true, GUILayout.ExpandWidth(true));
 					EditorGUILayout.ObjectField(action.Asset, typeof(AudioPlayerAsset), false, GUILayout.ExpandWidth(true));
 					EditorGUILayout.FloatField(action.ListenerDistance, GUILayout.MaxWidth(timeColumnWidth));
 
@@ -263,7 +262,8 @@ namespace DevLocker.Audio.Editor
 			const float timeColumnWidth = 80f;
 			const float floatColumnWidth = 30f;
 			const float scrollViewMarginFix = 35f;
-			float objectFlexibleWidth = (position.width - timeColumnWidth - 2 * enumColumnWidth - 2 * boolColumnWidth - 3 * floatColumnWidth - scrollViewMarginFix) / 4f;
+			const int objectColumnsCount = 5;
+			float objectFlexibleWidth = (position.width - timeColumnWidth - 2 * enumColumnWidth - 2 * boolColumnWidth - 3 * floatColumnWidth - scrollViewMarginFix) / objectColumnsCount;
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
 

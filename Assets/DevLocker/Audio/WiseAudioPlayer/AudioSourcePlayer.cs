@@ -85,7 +85,7 @@ namespace DevLocker.Audio
 			}
 			public AudioPlayerAsset AudioAsset {
 				get => m_AudioAsset;
-				set { m_AudioAsset = value; m_AudioAsset = null; }
+				set { m_AudioAsset = value; m_AudioResource = null; }
 			}
 
 			public bool HasValidReference => m_AudioResource != null || m_AudioAsset != null;
@@ -115,7 +115,7 @@ namespace DevLocker.Audio
 			public AudioSource AudioSource { get; internal set; }
 			public AudioPlayerAsset AudioPlayerAsset { get; internal set; }
 			public bool ConductorFinished { get; internal set; }
-			public readonly float StartTime;
+			public readonly float StartTimeUnscaled;
 
 			public bool IsPlaying => AudioSource != null && (!ConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && RepeatPattern.IsPatternInterval));
 			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
@@ -135,13 +135,13 @@ namespace DevLocker.Audio
 
 			internal bool Cancelled;
 
-			public PlaybackState(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatOptions repeatPattern, float startTime)
+			public PlaybackState(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatOptions repeatPattern, float startTimeUnscaled)
 			{
 				SourcesPoolMode = poolMode;
 				AudioSource = audioSource;
 				Player = player;
 				RepeatPattern = repeatPattern;
-				StartTime = startTime;
+				StartTimeUnscaled = startTimeUnscaled;
 			}
 
 			#region Direct Play for Conductors
@@ -280,12 +280,12 @@ namespace DevLocker.Audio
 
 			internal IEnumerator FadeVolumeCrt(float fadeSeconds, float workingVolume, bool fadeIn, Action callbackOnFinish = null)
 			{
-				float startTime = Time.time;
+				float startTime = Time.unscaledTime;
 				float startVolume = fadeIn ? 0f : workingVolume;
 				float endVolume = fadeIn ? workingVolume : 0f;
 
-				while (Time.time - startTime < fadeSeconds) {
-					AudioSource.volume = Mathf.Lerp(startVolume, endVolume, (Time.time - startTime) / fadeSeconds);
+				while (Time.unscaledTime - startTime < fadeSeconds) {
+					AudioSource.volume = Mathf.Lerp(startVolume, endVolume, (Time.unscaledTime - startTime) / fadeSeconds);
 					yield return null;
 				}
 
@@ -424,7 +424,7 @@ namespace DevLocker.Audio
 		[NonSerialized]
 		public int GamepadOutputIndex = -1;
 
-		public float LastPlayTime { get; private set; }
+		public float LastPlayTimeUnscaled { get; private set; }
 
 		public IReadOnlyList<PlaybackState> ActivePlaybacks => m_ActivePlaybacks.AsReadOnly();
 
@@ -544,9 +544,6 @@ namespace DevLocker.Audio
 			if (Application.isPlaying) {
 				foreach(var playback in m_ActivePlaybacks) {
 					if (playback.AudioSource) {
-						if (playback.AudioSource.volume != m_Volume) {
-							playback.AudioSource.volume = m_Volume;
-						}
 						if (playback.AudioSource.mute != m_Mute) {
 							playback.AudioSource.mute = m_Mute;
 						}
@@ -624,7 +621,7 @@ namespace DevLocker.Audio
 				var conductorCoroutine = StartCoroutine(StartAssetPlayback(audioReference.AudioAsset, delay, playback));
 
 				// We can get the coroutine after running it initially, but it may already have finished.
-				if (playback.IsPlaying) {
+				if (!playback.ConductorFinished) {
 					playback.ConductorCoroutine = conductorCoroutine;
 				}
 
@@ -634,7 +631,7 @@ namespace DevLocker.Audio
 
 			// If AudioSource is missing playback got released immediately, which means it didn't actually play.
 			if (!playback.Cancelled && playback.AudioSource != null) {
-				LastPlayTime = Time.time;
+				LastPlayTimeUnscaled = Time.unscaledTime;
 				PlaybackStarted?.Invoke(playback);
 			}
 
@@ -758,11 +755,11 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Instantly stop all active playbacks that use the given asset.
 		/// </summary>
-		public virtual void StopAllPlaybacksExcept(AudioPlayerAsset keptAsset, PlaybackState excludePlayback = null)
+		public virtual void StopAllPlaybacksWithAsset(AudioPlayerAsset asset, PlaybackState excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
-				if (playback.AudioPlayerAsset == keptAsset && excludePlayback != playback) {
+				if (playback.AudioPlayerAsset == asset && excludePlayback != playback) {
 
 					// Before actually releasing the playback, so it can be used by the event.
 					PlaybackStopped?.Invoke(playback);
@@ -1104,7 +1101,7 @@ namespace DevLocker.Audio
 					yield return null;
 
 					if (!IsPaused) {
-						waitTime += Time.deltaTime;
+						waitTime += Time.unscaledDeltaTime;
 					}
 				}
 			}
@@ -1172,12 +1169,12 @@ namespace DevLocker.Audio
 
 					if (playback.AudioSource.isPlaying != playback.LastIsPlayingForRepeatInterval) {
 						if (!playback.AudioSource.isPlaying) {
-							playback.NextPlayTime = Time.time + playback.RepeatPattern.NextIntervalValue();
+							playback.NextPlayTime = Time.unscaledTime + playback.RepeatPattern.NextIntervalValue();
 						}
 						playback.LastIsPlayingForRepeatInterval = playback.AudioSource.isPlaying;
 					}
 
-					if (!playback.AudioSource.isPlaying && Time.time >= playback.NextPlayTime) {
+					if (!playback.AudioSource.isPlaying && Time.unscaledTime >= playback.NextPlayTime) {
 						playback.AudioSource.Play();
 					}
 				}
@@ -1206,7 +1203,7 @@ namespace DevLocker.Audio
 				}
 #endif
 
-				playback = new PlaybackState(this, source, m_SourcesPoolMode, m_RepeatPattern, Time.time);
+				playback = new PlaybackState(this, source, m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
 				m_ActivePlaybacks.Add(playback);
 
 				return playback;
@@ -1214,7 +1211,7 @@ namespace DevLocker.Audio
 
 			switch (m_SourcesPoolMode) {
 				case AudioSourcesPoolMode.PlayerObjectPool:
-					playback = new PlaybackState(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.time);
+					playback = new PlaybackState(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.PlayerChildPool:
@@ -1224,7 +1221,7 @@ namespace DevLocker.Audio
 						childContainer.SetParent(transform, worldPositionStays: false);
 					}
 
-					playback = new PlaybackState(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.time);
+					playback = new PlaybackState(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.GlobalPool:
@@ -1232,7 +1229,7 @@ namespace DevLocker.Audio
 					if (AudioSourcesGlobalPool.Instance == null)
 						return null;
 					
-					playback = new PlaybackState(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_RepeatPattern, Time.time);
+					playback = new PlaybackState(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
 					playback.AudioSource.transform.position = transform.position;   // Global pool sources are not children of this object, so we need to set their position manually.
 					break;
 
@@ -1358,13 +1355,18 @@ namespace DevLocker.Audio
 			//source.spread = 0f;			// Represents curve with 1 point, set below.
 			source.minDistance = 1f;
 			source.maxDistance = 500f;
-			source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, new AnimationCurve(new Keyframe(0, 1, 0, 0), new Keyframe(1, 0, 0, 0)));
-			source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, new AnimationCurve(new Keyframe(0, 0)));
-			source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, new AnimationCurve(new Keyframe(0, 1)));
-			source.SetCustomCurve(AudioSourceCurveType.Spread, new AnimationCurve(new Keyframe(0, 0)));
+			source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, s_ResetCurve_CustomRolloff);
+			source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, s_ResetCurve_SpatialBlend);
+			source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, s_ResetCurve_ReverbZoneMix);
+			source.SetCustomCurve(AudioSourceCurveType.Spread, s_ResetCurve_Spread);
 
 			source.rolloffMode = AudioRolloffMode.Logarithmic;  // Because changing the curve changes this property to custom.
 																// Overrides the CustomRolloff curve, but the curve is still stored.
 		}
+		
+		private static readonly AnimationCurve s_ResetCurve_CustomRolloff = new AnimationCurve(new Keyframe(0, 1, 0, 0), new Keyframe(1, 0, 0, 0));
+		private static readonly AnimationCurve s_ResetCurve_SpatialBlend = new AnimationCurve(new Keyframe(0, 0));
+		private static readonly AnimationCurve s_ResetCurve_ReverbZoneMix = new AnimationCurve(new Keyframe(0, 1));
+		private static readonly AnimationCurve s_ResetCurve_Spread = new AnimationCurve(new Keyframe(0, 0));
 	}
 }
