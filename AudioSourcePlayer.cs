@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -118,7 +117,8 @@ namespace DevLocker.Audio
 			public bool ConductorFinished { get; internal set; }
 			public readonly float StartTime;
 
-			public bool IsPlaying => !ConductorFinished || (AudioSource && AudioSource.isPlaying) || (!IsUsingConductors && RepeatPattern.IsPatternInterval && AudioSource);
+			public bool IsPlaying => !ConductorFinished || (AudioSource && (AudioSource.isPlaying || IsPaused)) || (!IsUsingConductors && RepeatPattern.IsPatternInterval && AudioSource);
+			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
 			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
 
 			public RepeatOptions RepeatPattern { get; internal set; }
@@ -674,7 +674,7 @@ namespace DevLocker.Audio
 		public virtual void Stop(PlaybackState playback, float interruptionFadeDuration)
 		{
 			// Not one of ours or it already finished.
-			if (m_ActivePlaybacks.Contains(playback))
+			if (!m_ActivePlaybacks.Contains(playback))
 				return;
 
 			if (interruptionFadeDuration > 0f && !IsPaused) {
@@ -791,7 +791,7 @@ namespace DevLocker.Audio
 
 			if (InterruptionFadeDuration > 0f) {
 				foreach (var playback in m_ActivePlaybacks) {
-					if (playback.IsPlaying && playback.StopFadeCoroutine == null) {
+					if (playback.AudioSource && playback.StopFadeCoroutine == null) {
 
 						// Stop any previous pause sequence.
 						playback.StopPauseFadeCoroutine();
@@ -834,16 +834,23 @@ namespace DevLocker.Audio
 
 			if (InterruptionFadeDuration > 0f) {
 
+				bool anyFades = false;
+				
 				foreach (var playback in m_ActivePlaybacks) {
-					if (playback.IsPlaying && playback.StopFadeCoroutine == null) {
+					
+					if (playback.IsPlaying) {
 						playback.StopConductorCoroutine();
 						playback.ConductorFinished = true;
 
 						// If fading to stop replaces fading to pause.
 						playback.StopPauseFadeCoroutine();
 
+						bool wasStopping = playback.StopFadeCoroutine != null;
+						// Overrides any Stop() fading out.
+						playback.StopStopFadeCoroutine();
+
 						// If still playing, try fading it out.
-						if (playback.IsPlaying) {
+						if (playback.IsPlaying && !playback.IsPaused) {
 							var callbackState = playback;    // Closure capture for the callback.
 							playback.StopFadeCoroutine = StartCoroutine(playback.FadeVolumeCrt(InterruptionFadeDuration, playback.AudioSource.volume, fadeIn: false, () => {
 								ReleaseAudioPlayback(callbackState);
@@ -854,12 +861,20 @@ namespace DevLocker.Audio
 								}
 							}));
 
-							PlaybackStopped?.Invoke(playback);
+							anyFades = true;
+							if (!wasStopping) {
+								PlaybackStopped?.Invoke(playback);
+							}
+
 						}
-						// Else - it wasn't playing and it will be released up on disable caused by destroy.
+
 					}
 				}
-
+				
+				if (!anyFades) {
+					destroyAction();
+				}
+				
 			} else {
 
 				while (m_ActivePlaybacks.Count > 0) {
@@ -896,23 +911,23 @@ namespace DevLocker.Audio
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioClip clip, GameObject gameObject = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play2DAudio(new AudioReferenceProperty(clip), gameObject, volume, pitch);
+		public static PlaybackState Play2DAudio(AudioClip clip, GameObject gameObject = null)
+			=> Play2DAudio(new AudioReferenceProperty(clip), gameObject);
 
 		/// <summary>
 		/// Play audio quickly as 2D sound from code on specified object (will automatically create player on it).
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioPlayerAsset asset, GameObject gameObject = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play2DAudio(new AudioReferenceProperty(asset), gameObject, volume, pitch);
+		public static PlaybackState Play2DAudio(AudioPlayerAsset asset, GameObject gameObject = null)
+			=> Play2DAudio(new AudioReferenceProperty(asset), gameObject);
 
 		/// <summary>
 		/// Play audio quickly as 2D sound from code on specified object (will automatically create player on it).
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioReferenceProperty audioReference, GameObject gameObject = null, float volume = 1.0f, float pitch = 1.0f)
+		public static PlaybackState Play2DAudio(AudioReferenceProperty audioReference, GameObject gameObject = null)
 		{
 			AudioSourcePlayer player;
 			bool setAsDefaultPlayer = false;
@@ -943,11 +958,7 @@ namespace DevLocker.Audio
 				}
 			}
 
-			var playback = player.PlayAudioReference(audioReference);
-			playback.AudioSource.volume = volume;
-			playback.AudioSource.pitch = pitch;
-
-			return playback;
+			return player.PlayAudioReference(audioReference);
 		}
 
 		/// <summary>
@@ -955,23 +966,23 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioClip clip, GameObject gameObject, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play3DAudio(new AudioReferenceProperty(clip), gameObject, template, volume, pitch);
+		public static PlaybackState Play3DAudio(AudioClip clip, GameObject gameObject, AudioSource template = null)
+			=> Play3DAudio(new AudioReferenceProperty(clip), gameObject, template);
 
 		/// <summary>
 		/// Play audio quickly as 3D sound from code on specified object (will automatically create player on it).
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, GameObject gameObject, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play3DAudio(new AudioReferenceProperty(asset), gameObject, template, volume, pitch);
+		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, GameObject gameObject, AudioSource template = null)
+			=> Play3DAudio(new AudioReferenceProperty(asset), gameObject, template);
 
 		/// <summary>
 		/// Play audio reference quickly as 3D sound from code on specified object (will automatically create player on it).
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, GameObject gameObject, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
+		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, GameObject gameObject, AudioSource template = null)
 		{
 			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
 
@@ -989,11 +1000,7 @@ namespace DevLocker.Audio
 				}
 			}
 
-			var playback = player.PlayAudioReference(audioReference);
-			playback.AudioSource.volume = volume;
-			playback.AudioSource.pitch = pitch;
-
-			return playback;
+			return player.PlayAudioReference(audioReference);
 		}
 
 		/// <summary>
@@ -1001,23 +1008,23 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioClip clip, Vector3 position, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play3DAudio(new AudioReferenceProperty(clip), position, template, volume, pitch);
+		public static PlaybackState Play3DAudio(AudioClip clip, Vector3 position, AudioSource template = null)
+			=> Play3DAudio(new AudioReferenceProperty(clip), position, template);
 
 		/// <summary>
 		/// Play audio quickly as 3D sound from code on specified position (will create a temporary player on that position).
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, Vector3 position, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
-			=> Play3DAudio(new AudioReferenceProperty(asset), position, template, volume, pitch);
+		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, Vector3 position, AudioSource template = null)
+			=> Play3DAudio(new AudioReferenceProperty(asset), position, template);
 
 		/// <summary>
 		/// Play audio quickly as 3D sound from code on specified position (will create a temporary player on that position).
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, Vector3 position, AudioSource template = null, float volume = 1.0f, float pitch = 1.0f)
+		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, Vector3 position, AudioSource template = null)
 		{
 			// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
 			AudioSourcePlayer player = new GameObject("One Shot 3D Audio").AddComponent<AudioSourcePlayer>();
@@ -1035,8 +1042,6 @@ namespace DevLocker.Audio
 			}
 
 			var playback = player.PlayAudioReference(audioReference);
-			playback.AudioSource.volume = volume;
-			playback.AudioSource.pitch = pitch;
 
 			player.DestroyPlayerWhenFinishedPlaying(destroyGameObject: true);
 
