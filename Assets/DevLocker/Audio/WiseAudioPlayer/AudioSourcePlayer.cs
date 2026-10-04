@@ -476,6 +476,7 @@ namespace DevLocker.Audio
 
 		private List<PlaybackState> m_ActivePlaybacks = new List<PlaybackState>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
+		private const string ChildPoolContainerName = "__AudioSourcePlayerPool__";
 
 		// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
 		public static AudioSourcePlayer Quick2DPlayer;
@@ -505,8 +506,27 @@ namespace DevLocker.Audio
 				// If we are disabled because we are being destroyed, keep playing the source
 				// in case it is in the global pool, allowing it to finish.
 				// If source is child of this object it will stop automatically anyway.
-				ReleaseAudioPlayback(m_ActivePlaybacks.Last(), stopSource: false);
+				// If source is looping - always stop, or it may play forever if only player is disabled.
+				var playback = m_ActivePlaybacks.Last();
+				ReleaseAudioPlayback(playback, stopSource: playback.AudioSource && playback.AudioSource.loop);
 			}
+		}
+
+		protected virtual void OnDestroy()
+		{
+			// In case player is destroyed (but not the object) clean up the local sources pool.
+			foreach(var source in m_AudioSourcesPool) {
+				if (source && source.gameObject == gameObject) {
+					GameObject.Destroy(source);
+				}
+			}
+			
+			var childContainer = transform.Find(ChildPoolContainerName);
+			if (childContainer) {
+				GameObject.Destroy(childContainer.gameObject);
+			}
+			
+			m_AudioSourcesPool.Clear();
 		}
 
 		protected virtual void OnValidate()
@@ -594,6 +614,10 @@ namespace DevLocker.Audio
 			}
 
 			var playback = AcquireAudioPlayback();
+			
+			// Something went wrong, abort. Probably editor is quitting.
+			if (playback == null)
+				return null;
 
 			if (audioReference.AudioAsset != null) {
 
@@ -1188,9 +1212,9 @@ namespace DevLocker.Audio
 					break;
 
 				case AudioSourcesPoolMode.PlayerChildPool:
-					var childContainer = transform.Find("__AudioSourcePlayerPool__");
+					var childContainer = transform.Find(ChildPoolContainerName);
 					if (childContainer == null) {
-						childContainer = new GameObject("__AudioSourcePlayerPool__").transform;
+						childContainer = new GameObject(ChildPoolContainerName).transform;
 						childContainer.SetParent(transform, worldPositionStays: false);
 					}
 
@@ -1198,6 +1222,10 @@ namespace DevLocker.Audio
 					break;
 
 				case AudioSourcesPoolMode.GlobalPool:
+					// Editor is quitting, pool is gone.
+					if (AudioSourcesGlobalPool.Instance == null)
+						return null;
+					
 					playback = new PlaybackState(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_RepeatPattern, Time.time);
 					playback.AudioSource.transform.position = transform.position;   // Global pool sources are not children of this object, so we need to set their position manually.
 					break;
@@ -1243,7 +1271,7 @@ namespace DevLocker.Audio
 					m_AudioSourcesPool.Enqueue(playback.AudioSource);
 					break;
 				case AudioSourcesPoolMode.GlobalPool:
-					AudioSourcesGlobalPool.Instance.ReleaseAudioSource(playback.AudioSource);
+					AudioSourcesGlobalPool.Instance?.ReleaseAudioSource(playback.AudioSource);
 					break;
 			}
 
