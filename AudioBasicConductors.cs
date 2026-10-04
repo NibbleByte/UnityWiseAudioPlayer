@@ -344,7 +344,15 @@ namespace DevLocker.Audio.Conductors
 			if (player == null)
 				return;
 
-			player.AudioReference.AudioAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
+			if (player.ActivePlaybacks.Any()) {
+				foreach (var playback in player.ActivePlaybacks) {
+					if (playback.AudioPlayerAsset != null) {
+						playback.AudioPlayerAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
+					}
+				}
+			} else if (player.AudioReference.AudioAsset) {
+				player.AudioReference.AudioAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
+			}
 
 		}
 	}

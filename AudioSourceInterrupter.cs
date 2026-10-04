@@ -14,9 +14,6 @@ namespace DevLocker.Audio
 		[Tooltip("AudioSourcePlayers to be stopped (interrupted)")]
 		public AudioSourcePlayer[] Players;
 
-		[Tooltip("Audisources (without players) to be stopped (interrupted)")]
-		public AudioSource[] AudioSources;
-
 		[Tooltip("AudioSourcePlayers that are playing these AudioResources will be stopped")]
 		public AudioResource[] Resources;
 
@@ -59,12 +56,6 @@ namespace DevLocker.Audio
 				}
 			}
 
-			foreach (var player in AudioSources) {
-				if (player && player.isPlaying) {
-					player.Stop();
-				}
-			}
-
 			if (Resources.Length > 0 || !string.IsNullOrWhiteSpace(ResourceNameContains)) {
 				foreach (var player in AudioSourcePlayer.ActivePlayersRegister) {
 					if (!player.IsPlaying)
@@ -74,13 +65,24 @@ namespace DevLocker.Audio
 					if (Array.IndexOf(Players, player) != -1)
 						continue;
 
-					AudioResource resource = player.AudioReference.AudioResource;
+					var playbacks = player.ActivePlaybacks;
+					for (int i = playbacks.Count - 1; i >= 0; i--) {
+						var playback = playbacks[i];
 
-					if (resource && Array.IndexOf(Resources, resource) != -1) {
-						player.Stop();
+						if (playback.AudioSource == null)
+							continue;
 
-					} else if (!string.IsNullOrWhiteSpace(ResourceNameContains) && resource && resource.name.Contains(ResourceNameContains, StringComparison.OrdinalIgnoreCase)) {
-						player.Stop();
+						AudioResource resource = playback.AudioSource.resource;
+
+						if (resource && Array.IndexOf(Resources, resource) != -1) {
+							player.Stop(playback);
+							continue;
+						}
+
+						if (!string.IsNullOrWhiteSpace(ResourceNameContains) && resource && resource.name.Contains(ResourceNameContains, StringComparison.OrdinalIgnoreCase)) {
+							player.Stop(playback);
+							continue;
+						}
 					}
 				}
 			}
