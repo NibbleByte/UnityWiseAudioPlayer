@@ -17,6 +17,7 @@ MonoBehaviour:
     Pattern: 0
     MinSeconds: 0
     MaxSeconds: 0
+  InterruptMode: 0
   Delay: 0
   OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
   Template: {fileID: 0}
@@ -40,7 +41,6 @@ MonoBehaviour:
     - rid: 8526195024085123077
       type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
-        StopPlayingSound: 0
         AudioClip:
           Clip: {fileID: 8300000, guid: c647613ff47bfbb4aa6a0ec2a3d57027, type: 3}
           VolumeDB: 0
@@ -64,7 +64,6 @@ MonoBehaviour:
     - rid: 8526195024085123079
       type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
-        StopPlayingSound: 0
         AudioClip:
           Clip: {fileID: 8300000, guid: 28dcd303c932c4041b8da03d59a93ff8, type: 3}
           VolumeDB: 0
@@ -94,7 +93,6 @@ MonoBehaviour:
     - rid: 8526195024085123082
       type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
-        StopPlayingSound: 0
         AudioClip:
           Clip: {fileID: 8300000, guid: b4dcdaa7efec1a84f85eea51d23b5e40, type: 3}
           VolumeDB: 0

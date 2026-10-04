@@ -12,6 +12,7 @@ namespace DevLocker.Audio
 	/// "Follow" means it will move with the original parent. If the parent gets disabled or destroyed, isolated object gets destroyed too once the sound stops playing.
 	/// This way references to the players remain and currently playing sounds won't get interrupted.
 	/// </summary>
+	[AddComponentMenu("Audio/Audio Source Isolate And Follow")]
 	[RequireComponent(typeof(AudioSourcePlayer))]
 	public class AudioSourceIsolateAndFollow : MonoBehaviour
 	{

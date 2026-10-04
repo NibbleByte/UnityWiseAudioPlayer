@@ -29,6 +29,7 @@ namespace DevLocker.Audio.Editor
 
 			public MonoBehaviour Player;
 			public AudioResource Resource;
+			public AudioPlayerAsset Asset;
 			public AudioMixerGroup MixerGroup;
 			public AudioSource Template;
 
@@ -68,10 +69,10 @@ namespace DevLocker.Audio.Editor
 
 		void OnEnable()
 		{
-			AudioSourcePlayer.PlayStarted += OnPlayStarted;
-			AudioSourcePlayer.PlayStopped += OnPlayStopped;
-			AudioSourcePlayer.PlayPaused += OnPlayPaused;
-			AudioSourcePlayer.PlayUnpaused += OnPlayUnpaused;
+			AudioSourcePlayer.PlaybackStarted += OnPlayStarted;
+			AudioSourcePlayer.PlaybackStopped += OnPlayStopped;
+			AudioSourcePlayer.PlaybackPaused += OnPlayPaused;
+			AudioSourcePlayer.PlaybackUnpaused += OnPlayUnpaused;
 
 			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -79,10 +80,10 @@ namespace DevLocker.Audio.Editor
 
 		void OnDisable()
 		{
-			AudioSourcePlayer.PlayStarted -= OnPlayStarted;
-			AudioSourcePlayer.PlayStopped -= OnPlayStopped;
-			AudioSourcePlayer.PlayPaused -= OnPlayPaused;
-			AudioSourcePlayer.PlayUnpaused -= OnPlayUnpaused;
+			AudioSourcePlayer.PlaybackStarted -= OnPlayStarted;
+			AudioSourcePlayer.PlaybackStopped -= OnPlayStopped;
+			AudioSourcePlayer.PlaybackPaused -= OnPlayPaused;
+			AudioSourcePlayer.PlaybackUnpaused -= OnPlayUnpaused;
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -92,15 +93,15 @@ namespace DevLocker.Audio.Editor
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Play, player, audioSource);
+		private void OnPlayStarted(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Play, playback);
 
-		private void OnPlayStopped(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Stop, player, audioSource);
+		private void OnPlayStopped(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Stop, playback);
 
-		private void OnPlayPaused(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.Pause, player, audioSource);
+		private void OnPlayPaused(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Pause, playback);
 
-		private void OnPlayUnpaused(AudioSourcePlayer player, AudioSource audioSource) => AddAction(ActionType.UnPause, player, audioSource);
+		private void OnPlayUnpaused(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.UnPause, playback);
 
-		private void AddAction(ActionType actionType, AudioSourcePlayer player, AudioSource audioSource)
+		private void AddAction(ActionType actionType, AudioSourcePlayer.PlaybackState playback)
 		{
 			if (!m_ListenForEvents)
 				return;
@@ -113,20 +114,21 @@ namespace DevLocker.Audio.Editor
 				Type = actionType,
 				Time = Time.time,
 
-				Player = player,
-				Resource = player.AudioReference.AudioResource ?? audioSource?.resource,
-				MixerGroup = player.EffectiveOutput,
-				Template = player.EffectiveTemplate,
+				Player = playback.Player,
+				Resource = playback.AudioSource.resource,
+				Asset = playback.AudioPlayerAsset,
+				MixerGroup = playback.Output,
+				Template = playback.Template,
 
-				Mute = player.Mute,
-				PlayOnEnable = player.PlayOnEnable,
+				Mute = playback.Player.Mute,
+				PlayOnEnable = playback.Player.PlayOnEnable,
 
-				RepeatPattern = player.EffectiveRepeatPattern.Pattern,
-				Volume = audioSource?.volume ?? player.Volume,	// Conductors may change audio source volume directly.
-				Pitch = player.Pitch,
-				SpatialBlend = player.SpatialBlend,
+				RepeatPattern = playback.RepeatPattern.Pattern,
+				Volume = playback.AudioSource.volume,	// Conductors may change audio source volume directly.
+				Pitch = playback.AudioSource.pitch,
+				SpatialBlend = playback.AudioSource.spatialBlend,
 
-				ListenerDistance = m_AudioListener ? Vector3.Distance(m_AudioListener.transform.position, player.transform.position) : -1f,
+				ListenerDistance = m_AudioListener ? Vector3.Distance(m_AudioListener.transform.position, playback.Player.transform.position) : -1f,
 			};
 
 			m_Actions.Add(action);
@@ -219,6 +221,7 @@ namespace DevLocker.Audio.Editor
 
 				GUILayout.Label("Player", HeaderStyle, GUILayout.ExpandWidth(true));
 				GUILayout.Label("Resource", HeaderStyle, GUILayout.ExpandWidth(true));
+				GUILayout.Label("Asset", HeaderStyle, GUILayout.ExpandWidth(true));
 				GUILayout.Label("Distance", HeaderStyle, GUILayout.MaxWidth(timeColumnWidth));
 			}
 			EditorGUILayout.EndHorizontal();
@@ -239,6 +242,7 @@ namespace DevLocker.Audio.Editor
 					EditorGUILayout.FloatField(action.Time, GUILayout.MaxWidth(timeColumnWidth));
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
 					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.ExpandWidth(true));
+					EditorGUILayout.ObjectField(action.Asset, typeof(AudioPlayerAsset), false, GUILayout.ExpandWidth(true));
 					EditorGUILayout.FloatField(action.ListenerDistance, GUILayout.MaxWidth(timeColumnWidth));
 
 				}
@@ -261,6 +265,8 @@ namespace DevLocker.Audio.Editor
 			const float scrollViewMarginFix = 35f;
 			float objectFlexibleWidth = (position.width - timeColumnWidth - 2 * enumColumnWidth - 2 * boolColumnWidth - 3 * floatColumnWidth - scrollViewMarginFix) / 4f;
 
+			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
+
 			// Table Header
 			EditorGUILayout.BeginHorizontal();
 			{
@@ -271,6 +277,7 @@ namespace DevLocker.Audio.Editor
 				GUILayout.Label("Resource", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
 				GUILayout.Label("Mixer Group", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
 				GUILayout.Label("Template", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
+				GUILayout.Label("Asset", HeaderStyle, GUILayout.Width(objectFlexibleWidth));
 
 				GUILayout.Label("Mute", HeaderStyle, GUILayout.Width(boolColumnWidth));
 				GUILayout.Label("Auto", HeaderStyle, GUILayout.Width(boolColumnWidth));
@@ -282,10 +289,6 @@ namespace DevLocker.Audio.Editor
 				GUILayout.Label("Spatial", HeaderStyle, GUILayout.Width(floatColumnWidth + scrollViewMarginFix));
 			}
 			EditorGUILayout.EndHorizontal();
-
-			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
-
-			var audioType = typeof(AudioResource);
 
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
@@ -301,9 +304,10 @@ namespace DevLocker.Audio.Editor
 
 					float objectMarginFix = 5;
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
-					EditorGUILayout.ObjectField(action.Resource, audioType, true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Resource, typeof(AudioResource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.MixerGroup, typeof(AudioMixerGroup), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Template, typeof(AudioSource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Asset, typeof(AudioPlayerAsset), false, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 
 					float toggleMargin = 8f;
 					GUILayout.Space(toggleMargin);

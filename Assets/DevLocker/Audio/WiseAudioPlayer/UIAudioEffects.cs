@@ -13,6 +13,7 @@ namespace DevLocker.Audio
 	///
 	/// NOTE: If audio reference is not supplied it won't consume the event itself.
 	/// </summary>
+	[AddComponentMenu("Audio/UI Audio Effects")]
 	public class UIAudioEffects : MonoBehaviour
 	{
 		public enum InteractableModeType
