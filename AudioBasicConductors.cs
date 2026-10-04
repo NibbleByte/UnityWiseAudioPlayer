@@ -11,21 +11,16 @@ namespace DevLocker.Audio.Conductors
 	[Serializable]
 	public class PlayAudioConductor : AudioPlayerAsset.AudioConductor
 	{
-		public const string StopPlayingSoundTooltip = "Should it stop (interrupt) the currently playing sound?\n\nWhen disabled will use AudioSource PlayOneShot() instead of normal Play().";
-
-		[Tooltip(StopPlayingSoundTooltip)]
-		public bool StopPlayingSound = false;
-
 		public ClipWithVolumePitch AudioClip;
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
 			if (AudioClip.Clip == null) {
 				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
 				yield break;
 			}
 
-			player.PlayDirectClip(AudioClip, playAsOneShot: !StopPlayingSound);
+			playback.PlayDirectClip(AudioClip);
 
 			yield break;
 		}
@@ -44,9 +39,6 @@ namespace DevLocker.Audio.Conductors
 		private const string SequentialIndex_StorageKey = "SequentialIndex_" + nameof(PlayCollectionAudioConductor);
 		private const string ShuffleIndices_StorageKey = "ShuffleList_" + nameof(PlayCollectionAudioConductor);
 		private const string RandomLastIndices_StorageKey = "RandomLastIndices" + nameof(PlayCollectionAudioConductor);
-
-		[Tooltip(PlayAudioConductor.StopPlayingSoundTooltip)]
-		public bool StopPlayingSound = false;
 
 		[Tooltip("How clips from the collection will be selected on play.\n" +
 			" > Sequential - select in sequential order from the list\n" +
@@ -84,10 +76,12 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
 			if (AudioClips.Length == 0)
 				yield break;
+
+			AudioSourcePlayer player = playback.Player;
 
 			// Offsets on top of the selected clip's own volume and pitch. Roll them only once per play.
 			int volumeOffsetDB = VolumeRange.Roll();
@@ -97,7 +91,7 @@ namespace DevLocker.Audio.Conductors
 				case PlaybackMode.Sequential:
 					int sequentialIndex = asset.GetConductorsStorageValue(SequentialIndex_StorageKey, player, 0);
 
-					player.PlayDirectClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
+					playback.PlayDirectClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
 
 					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
 
@@ -112,7 +106,7 @@ namespace DevLocker.Audio.Conductors
 						Shuffle(shuffleIndices);
 					}
 
-					player.PlayDirectClip(AudioClips[shuffleIndices.LastOrDefault()], playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
+					playback.PlayDirectClip(AudioClips[shuffleIndices.LastOrDefault()], volumeOffsetDB, pitchOffsetCents);
 
 					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
 
@@ -138,7 +132,7 @@ namespace DevLocker.Audio.Conductors
 
 					var clipIndexPair = clipIndexPairs[UnityEngine.Random.Range(0, clipIndexPairs.Count)];
 
-					player.PlayDirectClip(clipIndexPair.Key, playAsOneShot: !StopPlayingSound, volumeOffsetDB, pitchOffsetCents);
+					playback.PlayDirectClip(clipIndexPair.Key, volumeOffsetDB, pitchOffsetCents);
 
 					randomLastIndices.Enqueue(clipIndexPair.Value);
 
@@ -187,12 +181,14 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject VisualEffectsPrefab;
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
-			var baseIt = base.Play(player, asset);
+			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
+
+			AudioSourcePlayer player = playback.Player;
 
 			if (VisualEffectsPrefab) {
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
@@ -217,12 +213,14 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject[] VisualEffectsPrefabs;
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
-			var baseIt = base.Play(player, asset);
+			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
+
+			AudioSourcePlayer player = playback.Player;
 
 			if (VisualEffectsPrefabs.Length > 0) {
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
@@ -251,14 +249,16 @@ namespace DevLocker.Audio.Conductors
 
 		public float Overlap = 0f;
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
-			AudioSource audioSource = player.PlayDirectClip(Intro, playAsOneShot: true, Volume);
+			AudioSource audioSource = playback.AudioSource;
 
-			audioSource.volume = Volume * player.Volume;	// OneShot is volume is passed as argument, not changing the source.
-
+			audioSource.volume = Volume * playback.Player.Volume;
 			audioSource.resource = Looped;
 			audioSource.loop = true;
+
+			// Can't use "Play Direct" methods as we want the loop enabled. Use PlayOneShot() to avoid looping the intro.
+			audioSource.PlayOneShot(Intro);
 
 			double introLengthDouble = (double)Intro.samples / (double)Intro.frequency; // This is more accurate than clip.float.
 			audioSource.PlayScheduled(AudioSettings.dspTime + introLengthDouble - Overlap);
@@ -305,8 +305,10 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
+			AudioSourcePlayer player = playback.Player;
+
 			if (AudioClip.Clip == null) {
 				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
 				yield break;
@@ -321,7 +323,7 @@ namespace DevLocker.Audio.Conductors
 
 			float pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, PitchSequence[pitchIndex]);
 
-			player.PlayDirectClip(AudioClip, playAsOneShot: true, pitch);
+			playback.PlayDirectClip(AudioClip, pitch);
 
 			pitchIndex = ResetOnSequenceEnd
 				? (pitchIndex + 1) % PitchSequence.Length
@@ -375,7 +377,7 @@ namespace DevLocker.Audio.Conductors
 		public float Overlap = 0.1f;
 		public bool RandomizeSequence = false;
 
-		public override IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
 		{
 			if (Clips.Length == 0)
 				yield break;
@@ -389,7 +391,7 @@ namespace DevLocker.Audio.Conductors
 
 			while (true) {
 
-				if (player.IsPaused)
+				if (playback.Player.IsPaused)
 					yield return null;
 
 				totalPlayTime += Time.deltaTime;
@@ -414,7 +416,7 @@ namespace DevLocker.Audio.Conductors
 
 					startTime = Time.time;
 
-					player.PlayDirectClip(clip, playAsOneShot: true, Volume);
+					playback.PlayDirectClipOneShot(clip, Volume);
 				}
 
 				yield return null;

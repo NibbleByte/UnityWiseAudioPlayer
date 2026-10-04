@@ -31,7 +31,7 @@ namespace DevLocker.Audio
 		[Serializable]
 		public abstract class AudioConductor
 		{
-			public abstract IEnumerator Play(AudioSourcePlayer player, AudioPlayerAsset asset);
+			public abstract IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset);
 
 			public virtual void OnValidate(AudioPlayerAsset context) { }
 		}
@@ -53,6 +53,13 @@ namespace DevLocker.Audio
 			Player,
 		}
 
+		public enum InterruptSoundsMode
+		{
+			DontInterruptPlayingSounds = 0,
+			InterruptAllPlayingSounds = 1,
+			InterruptPlayingSoundsFromThisAsset = 4,
+		}
+
 		[Serializable]
 		public struct AudioConductorBind
 		{
@@ -70,6 +77,9 @@ namespace DevLocker.Audio
 
 		[Tooltip("How sound should be repeated. Repeat interval allows you to specify seconds of silence every time after audio finished playing.\n\nSome conductors may ignore this property and loop on their own.\nThis will override the AudioSourcePlayer setting.")]
 		public AudioSourcePlayer.RepeatOptions RepeatPattern;
+
+		[Tooltip("Should it stop (interrupt) the currently playing sounds?")]
+		public InterruptSoundsMode InterruptMode;
 
 		[Tooltip("Delay before playing the audio asset. Will not be included in the loop.")]
 		public float Delay = 0f;
@@ -89,8 +99,11 @@ namespace DevLocker.Audio
 		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
 
 
-		public IEnumerator Play(AudioSourcePlayer player, AudioSource source, object context)
+		public IEnumerator Play(AudioSourcePlayer.PlaybackState playback, object context)
 		{
+			AudioSourcePlayer player = playback.Player;
+			AudioSource source = playback.AudioSource;
+
 			switch (RepeatPattern.Pattern) {
 				case AudioSourcePlayer.RepeatPatternType.Once:
 					source.loop = false;
@@ -105,6 +118,19 @@ namespace DevLocker.Audio
 					throw new NotSupportedException();
 			}
 
+			switch (InterruptMode) {
+				case InterruptSoundsMode.DontInterruptPlayingSounds:
+					// Do nothing.
+					break;
+				case InterruptSoundsMode.InterruptAllPlayingSounds:
+					player.StopAllPlaybacksExcept(playback);
+					break;
+				case InterruptSoundsMode.InterruptPlayingSoundsFromThisAsset:
+					player.StopAllPlaybacksExcept(this, playback);
+					break;
+				default: throw new NotSupportedException(InterruptMode.ToString());
+			}
+
 			bool assetCustomLoop;
 			do {
 				assetCustomLoop = false;
@@ -116,14 +142,12 @@ namespace DevLocker.Audio
 					// If conductor has custom logic other than just playing a looped sound,
 					// we implement the loop. Normal sounds should still loop via the source itself,
 					// which should drop any playback gaps between loops.
-					//
-					// NOTE: PlayOneShot() is not looped by the audio source so we must handle it ourselves.
-					if (RepeatPattern.IsLooping && (playConductor == null || !playConductor.StopPlayingSound)) {
+					if (RepeatPattern.IsLooping && playConductor == null) {
 						assetCustomLoop = true;
-						source.loop = false;
+						playback.AudioSource.loop = false;
 					}
 
-					yield return conductorBind.Conductor.Play(player, this);
+					yield return conductorBind.Conductor.Play(playback, this);
 
 				} else {
 
@@ -133,6 +157,7 @@ namespace DevLocker.Audio
 						assetCustomLoop = true;
 						continue;
 					} else {
+						playback.Cancelled = true;
 						yield break;
 					}
 				}

@@ -7,6 +7,7 @@ namespace DevLocker.Audio
 	/// <summary>
 	/// Component to quickly stop any playing players directly or players playing specific <see cref="AudioResource"/>s.
 	/// </summary>
+	[AddComponentMenu("Audio/Audio Source Interrupter")]
 	public class AudioSourceInterrupter : MonoBehaviour
 	{
 		[Header("Which?")]
@@ -36,7 +37,7 @@ namespace DevLocker.Audio
 			}
 
 			if (StopTargetsOnWhenPlaying) {
-				AudioSourcePlayer.PlayStarted += OnPlayStarted;
+				AudioSourcePlayer.PlaybackStarted += OnPlayStarted;
 
 				if (StopTargetsOnWhenPlaying.IsPlaying) {
 					StopTargets();
@@ -47,7 +48,7 @@ namespace DevLocker.Audio
 		void OnDisable()
 		{
 			// Always unsubscribe as StopTargetsOnWhenPlaying may have been destroyed, so null check is not valid.
-			AudioSourcePlayer.PlayStarted -= OnPlayStarted;
+			AudioSourcePlayer.PlaybackStarted -= OnPlayStarted;
 		}
 
 		public void StopTargets()
@@ -85,9 +86,9 @@ namespace DevLocker.Audio
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer player, AudioSource audioSource)
+		private void OnPlayStarted(AudioSourcePlayer.PlaybackState playback)
 		{
-			if (StopTargetsOnWhenPlaying == player) {
+			if (StopTargetsOnWhenPlaying == playback.Player) {
 				StopTargets();
 			}
 		}
