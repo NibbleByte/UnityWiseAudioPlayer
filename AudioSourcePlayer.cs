@@ -111,18 +111,18 @@ namespace DevLocker.Audio
 		public class PlaybackState
 		{
 			public readonly AudioSourcesPoolMode SourcesPoolMode;
-			public readonly AudioSourcePlayer Player;
-			public readonly AudioSource AudioSource;
+			public AudioSourcePlayer Player { get; internal set; }
+			public AudioSource AudioSource { get; internal set; }
 			public AudioPlayerAsset AudioPlayerAsset { get; internal set; }
 			public bool ConductorFinished { get; internal set; }
 			public readonly float StartTime;
 
-			public bool IsPlaying => !ConductorFinished || (AudioSource && (AudioSource.isPlaying || IsPaused)) || (!IsUsingConductors && RepeatPattern.IsPatternInterval && AudioSource);
+			public bool IsPlaying => AudioSource != null && (!ConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && RepeatPattern.IsPatternInterval));
 			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
 			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
 
 			public RepeatOptions RepeatPattern { get; internal set; }
-			public AudioMixerGroup Output => AudioSource.outputAudioMixerGroup;
+			public AudioMixerGroup Output => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 			public AudioSource Template { get; internal set; }
 
 			internal Coroutine ConductorCoroutine;
@@ -632,7 +632,8 @@ namespace DevLocker.Audio
 				StartResourcePlayback(audioReference.AudioResource, delay, playback);
 			}
 
-			if (!playback.Cancelled) {
+			// If AudioSource is missing playback got released immediately, which means it didn't actually play.
+			if (!playback.Cancelled && playback.AudioSource != null) {
 				LastPlayTime = Time.time;
 				PlaybackStarted?.Invoke(playback);
 			}
@@ -1276,6 +1277,10 @@ namespace DevLocker.Audio
 			}
 
 			m_ActivePlaybacks.Remove(playback);
+			
+			// Prevent users from using this playback.
+			playback.Player = null;
+			playback.AudioSource = null;
 		}
 
 		public static void CopyAudioSource(AudioSource destination, AudioSource source)
