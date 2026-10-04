@@ -696,6 +696,11 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Stop specific playback. If <see cref="InterruptionFadeDuration"/> is non-zero value, will fade the sound first, then stop it.
 		/// </summary>
+		public virtual void Stop(PlaybackState playback) => Stop(playback, InterruptionFadeDuration);
+
+		/// <summary>
+		/// Stop specific playback. If <see cref="interruptionFadeDuration"/> is non-zero value, will fade the sound first, then stop it.
+		/// </summary>
 		public virtual void Stop(PlaybackState playback, float interruptionFadeDuration)
 		{
 			// Not one of ours or it already finished.
@@ -1077,19 +1082,6 @@ namespace DevLocker.Audio
 
 		private IEnumerator StartAssetPlayback(AudioPlayerAsset asset, float delay, PlaybackState playback)
 		{
-			delay += asset.Delay;
-
-			if (delay > 0f) {
-				float waitTime = 0f;
-				while (waitTime < delay) {
-					yield return null;
-
-					if (!IsPaused) {
-						waitTime += Time.deltaTime;
-					}
-				}
-			}
-
 			playback.IsUsingConductors = true;
 			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutput(asset);
 			playback.AudioSource.loop = GetEffectiveRepeatPattern(asset).IsPatternLoop;
@@ -1103,6 +1095,19 @@ namespace DevLocker.Audio
 			}
 
 			playback.AudioPlayerAsset = asset;
+			
+			delay += asset.Delay;
+
+			if (delay > 0f) {
+				float waitTime = 0f;
+				while (waitTime < delay) {
+					yield return null;
+
+					if (!IsPaused) {
+						waitTime += Time.deltaTime;
+					}
+				}
+			}
 
 			yield return asset.Play(playback, ConductorsFilterContext);
 
