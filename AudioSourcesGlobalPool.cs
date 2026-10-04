@@ -14,6 +14,9 @@ namespace DevLocker.Audio
 	{
 		public static AudioSourcesGlobalPool Instance {
 			get {
+				if (s_IsQuitting)
+					return null;
+				
 				if (s_Instance == null) {
 					var go = new GameObject("AudioSourcesGlobalPool");
 					s_Instance = go.AddComponent<AudioSourcesGlobalPool>();
@@ -30,6 +33,19 @@ namespace DevLocker.Audio
 
 		private List<AudioSource> m_AudioSourcesPool = new List<AudioSource>();
 		private List<AudioSource> m_PendingReturnSources = new List<AudioSource>();
+		
+		private static bool s_IsQuitting = false;
+		
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		private static void ClearStaticsCache()
+		{
+			s_IsQuitting = false;
+		}
+
+		void OnApplicationQuit()
+		{
+			s_IsQuitting = true;
+		}
 
 		/// <summary>
 		/// Acquires an audio source from the pool or creates a new one if the pool is empty.
