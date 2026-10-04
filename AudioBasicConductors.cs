@@ -194,9 +194,9 @@ namespace DevLocker.Audio.Conductors
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
 
 				if (ParentToSource) {
-					GameObject.Instantiate(VisualEffectsPrefab, player.transform.position + Offset, rotation);
-				} else {
 					GameObject.Instantiate(VisualEffectsPrefab, player.transform.position + Offset, rotation, player.transform);
+				} else {
+					GameObject.Instantiate(VisualEffectsPrefab, player.transform.position + Offset, rotation);
 				}
 			}
 
@@ -228,9 +228,9 @@ namespace DevLocker.Audio.Conductors
 				var effectsPrefab = VisualEffectsPrefabs[UnityEngine.Random.Range(0, VisualEffectsPrefabs.Length)];
 
 				if (ParentToSource) {
-					GameObject.Instantiate(effectsPrefab, player.transform.position + Offset, rotation);
-				} else {
 					GameObject.Instantiate(effectsPrefab, player.transform.position + Offset, rotation, player.transform);
+				} else {
+					GameObject.Instantiate(effectsPrefab, player.transform.position + Offset, rotation);
 				}
 			}
 
@@ -317,7 +317,7 @@ namespace DevLocker.Audio.Conductors
 			int pitchIndex = asset.GetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
 			float lastPlayTime = asset.GetConductorsStorageValue(LastPlayTime_StorageKey, player, - 1f);
 
-			if (ResetAfterSeconds > 0 && lastPlayTime + ResetAfterSeconds < Time.time) {
+			if (ResetAfterSeconds > 0 && lastPlayTime + ResetAfterSeconds < Time.unscaledTime) {
 				pitchIndex = 0;
 			}
 
@@ -331,7 +331,7 @@ namespace DevLocker.Audio.Conductors
 				;
 
 			asset.SetConductorsStorageValue(PitchIndex_StorageKey, player, pitchIndex);
-			asset.SetConductorsStorageValue(LastPlayTime_StorageKey, player, Time.time);
+			asset.SetConductorsStorageValue(LastPlayTime_StorageKey, player, Time.unscaledTime);
 
 			yield break;
 		}
@@ -402,12 +402,12 @@ namespace DevLocker.Audio.Conductors
 				if (playback.Player.IsPaused)
 					yield return null;
 
-				totalPlayTime += Time.deltaTime;
+				totalPlayTime += Time.unscaledDeltaTime;
 				if (Duration >= 0f && totalPlayTime > Duration)
 					yield break;	// The last clip will continue playing as OneShot.
 
 
-				if (Time.time - startTime > clip.length - currentOverlap) {
+				if (Time.unscaledTime - startTime > clip.length - currentOverlap) {
 
 					if (playIntro) {
 						clip = Intro.Intro;
@@ -422,7 +422,7 @@ namespace DevLocker.Audio.Conductors
 						currentOverlap = Overlap;
 					}
 
-					startTime = Time.time;
+					startTime = Time.unscaledTime;
 
 					playback.PlayDirectClipOneShot(clip, Volume);
 				}
