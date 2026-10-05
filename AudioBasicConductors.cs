@@ -13,7 +13,7 @@ namespace DevLocker.Audio.Conductors
 	{
 		public ClipWithVolumePitch AudioClip;
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (AudioClip.Clip == null) {
 				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
@@ -76,7 +76,7 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (AudioClips.Length == 0)
 				yield break;
@@ -181,7 +181,7 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject VisualEffectsPrefab;
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
@@ -213,7 +213,7 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject[] VisualEffectsPrefabs;
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
@@ -249,7 +249,7 @@ namespace DevLocker.Audio.Conductors
 
 		public float Overlap = 0f;
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			AudioSource audioSource = playback.AudioSource;
 
@@ -305,7 +305,7 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			AudioSourcePlayer player = playback.Player;
 
@@ -385,7 +385,7 @@ namespace DevLocker.Audio.Conductors
 		public float Overlap = 0.1f;
 		public bool RandomizeSequence = false;
 
-		public override IEnumerator Play(AudioSourcePlayer.PlaybackState playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (Clips.Length == 0)
 				yield break;

@@ -24,31 +24,31 @@ namespace DevLocker.Audio
 			GlobalPool,
 		}
 
-		public enum RepeatPatternType
+		public enum RepeatMode
 		{
 			Once = 0,
 			Loop = 1,
 
-			RepeatInterval = 4,
+			LoopWithInterval = 4,
 		}
 
 		[Serializable]
-		public struct RepeatOptions
+		public struct RepeatSettings
 		{
-			public RepeatPatternType Pattern;
+			public RepeatMode Mode;
 
 			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
 			public float MinSeconds;
 			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
 			public float MaxSeconds;
 
-			public float NextIntervalValue() => Pattern == RepeatPatternType.RepeatInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
+			public float RollInterval() => Mode == RepeatMode.LoopWithInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
 
-			public bool IsLooping => Pattern != RepeatPatternType.Once;
+			public bool IsRepeating => Mode != RepeatMode.Once;
 
-			public bool IsPatternOnce => Pattern == RepeatPatternType.Once;
-			public bool IsPatternLoop => Pattern == RepeatPatternType.Loop;
-			public bool IsPatternInterval => Pattern == RepeatPatternType.RepeatInterval;
+			public bool IsOnce => Mode == RepeatMode.Once;
+			public bool IsLoop => Mode == RepeatMode.Loop;
+			public bool IsInterval => Mode == RepeatMode.LoopWithInterval;
 
 			public void OnValidate(UnityEngine.Object context)
 			{
@@ -108,7 +108,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Represents audio playback in progress.
 		/// </summary>
-		public class PlaybackState
+		public class AudioPlayback
 		{
 			public readonly AudioSourcesPoolMode SourcesPoolMode;
 			public AudioSourcePlayer Player { get; internal set; }
@@ -117,11 +117,11 @@ namespace DevLocker.Audio
 			public bool ConductorFinished { get; internal set; }
 			public readonly float StartTimeUnscaled;
 
-			public bool IsPlaying => AudioSource != null && (!ConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && RepeatPattern.IsPatternInterval));
+			public bool IsPlaying => AudioSource != null && (!ConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && Repeat.IsInterval));
 			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
 			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
 
-			public RepeatOptions RepeatPattern { get; internal set; }
+			public RepeatSettings Repeat { get; internal set; }
 			public AudioMixerGroup Output => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 			public AudioSource Template { get; internal set; }
 
@@ -130,17 +130,17 @@ namespace DevLocker.Audio
 			internal Coroutine PauseFadeCoroutine;
 			internal float PauseInitialVolume;
 
-			internal float NextPlayTime;					// For RepeatInterval pattern.
-			internal bool LastIsPlayingForRepeatInterval;   // For RepeatInterval pattern.
+			internal float NextPlayTime;						// For LoopWithInterval mode.
+			internal bool LastIsPlayingForLoopWithInterval;		// For LoopWithInterval mode.
 
 			internal bool Cancelled;
 
-			public PlaybackState(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatOptions repeatPattern, float startTimeUnscaled)
+			public AudioPlayback(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatSettings repeat, float startTimeUnscaled)
 			{
 				SourcesPoolMode = poolMode;
 				AudioSource = audioSource;
 				Player = player;
-				RepeatPattern = repeatPattern;
+				Repeat = repeat;
 				StartTimeUnscaled = startTimeUnscaled;
 			}
 
@@ -295,7 +295,7 @@ namespace DevLocker.Audio
 			#endregion
 		}
 
-		public delegate void PlaybackEventHandler(PlaybackState playback);
+		public delegate void PlaybackEventHandler(AudioPlayback playback);
 		public static event PlaybackEventHandler PlaybackStarted;
 		public static event PlaybackEventHandler PlaybackPaused;
 		public static event PlaybackEventHandler PlaybackUnpaused;
@@ -312,7 +312,7 @@ namespace DevLocker.Audio
 		/// Gets or sets the used audio reference.
 		/// If <see cref="AudioPlayerAsset"/> is used, it will override some of the player fields like repeat, output mixer, etc.
 		///
-		/// NOTE: Don't use from conductors!!! Use <see cref="PlaybackState.PlayDirectResource(AudioResource, float)"/> instead.
+		/// NOTE: Don't use from conductors!!! Use <see cref="AudioPlayback.PlayDirectResource(AudioResource, float)"/> instead.
 		/// </summary>
 		public AudioReferenceProperty AudioReference {
 			get => m_AudioReference;
@@ -393,23 +393,23 @@ namespace DevLocker.Audio
 		/// Short-cut to see if audio is looping.
 		/// </summary>
 		public bool Loop {
-			get => RepeatPattern.IsLooping;
+			get => Repeat.IsRepeating;
 			set {
-				var repeatPattern = RepeatPattern;
-				repeatPattern.Pattern = value ? RepeatPatternType.Loop : RepeatPatternType.Once;
-				RepeatPattern = repeatPattern;
+				var repeatSettings = Repeat;
+				repeatSettings.Mode = value ? RepeatMode.Loop : RepeatMode.Once;
+				Repeat = repeatSettings;
 			}
 		}
 
 		/// <summary>
-		/// Repeat pattern to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
+		/// Repeat settings to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
 		/// </summary>
-		public RepeatOptions RepeatPattern { get => m_RepeatPattern; set => m_RepeatPattern = value; }
+		public RepeatSettings Repeat { get => m_Repeat; set => m_Repeat = value; }
 
 		/// <summary>
-		/// Since <see cref="AudioPlayerAsset"/> overrides the repeat pattern, use this to get the actually used repeat pattern.
+		/// Since <see cref="AudioPlayerAsset"/> overrides the repeat mode, use this to get the actually used repeat mode.
 		/// </summary>
-		public RepeatOptions GetEffectiveRepeatPattern(AudioPlayerAsset asset = null) => asset == null ? m_RepeatPattern : asset.RepeatPattern;
+		public RepeatSettings GetEffectiveRepeatSettings(AudioPlayerAsset asset = null) => asset == null ? m_Repeat : asset.Repeat;
 
 		/// <summary>
 		/// Volume used when playing new sounds - will not affect already playing sounds.
@@ -426,7 +426,7 @@ namespace DevLocker.Audio
 
 		public float LastPlayTimeUnscaled { get; private set; }
 
-		public IReadOnlyList<PlaybackState> ActivePlaybacks => m_ActivePlaybacks.AsReadOnly();
+		public IReadOnlyList<AudioPlayback> ActivePlaybacks => m_ActivePlaybacks.AsReadOnly();
 
 		public static IReadOnlyList<AudioSourcePlayer> ActivePlayersRegister => m_ActivePlayersRegister.AsReadOnly();
 
@@ -461,8 +461,8 @@ namespace DevLocker.Audio
 		private bool m_PlayOnEnable = true;
 
 		[SerializeField]
-		[Tooltip("How sound should be repeated. Repeat interval allows you to specify seconds of silence every time after audio finished playing.\n\nWill be overriden when audio asset is used.")]
-		private RepeatOptions m_RepeatPattern;
+		[Tooltip("How sound should be repeated. Loop with interval allows you to specify seconds of silence every time after audio finished playing.\n\nWill be overriden when audio asset is used.")]
+		private RepeatSettings m_Repeat;
 
 		[Tooltip("Fade duration when sound is interrupted (Stop, Pause, Unpause)")]
 		public float InterruptionFadeDuration = 0.2f;
@@ -474,7 +474,7 @@ namespace DevLocker.Audio
 
 		private static readonly List<AudioSourcePlayer> m_ActivePlayersRegister = new List<AudioSourcePlayer>();
 
-		private List<PlaybackState> m_ActivePlaybacks = new List<PlaybackState>();
+		private List<AudioPlayback> m_ActivePlaybacks = new List<AudioPlayback>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
 		private const string ChildPoolContainerName = "__AudioSourcePlayerPool__";
 
@@ -539,7 +539,7 @@ namespace DevLocker.Audio
 				UnityEditor.EditorUtility.SetDirty(this);
 			}
 
-			m_RepeatPattern.OnValidate(this);
+			m_Repeat.OnValidate(this);
 
 			if (Application.isPlaying) {
 				foreach(var playback in m_ActivePlaybacks) {
@@ -597,14 +597,14 @@ namespace DevLocker.Audio
 		}
 
 
-		public PlaybackState PlayAudioReference(AudioReferenceProperty audioReference, float delay = 0f)
+		public AudioPlayback PlayAudioReference(AudioReferenceProperty audioReference, float delay = 0f)
 		{
 			audioReference.OnValidate(this);
 
 			return PlayImpl(audioReference, delay);
 		}
 
-		protected virtual PlaybackState PlayImpl(AudioReferenceProperty audioReference, float delay)
+		protected virtual AudioPlayback PlayImpl(AudioReferenceProperty audioReference, float delay)
 		{
 			if (IsPaused) {
 				UnPause();
@@ -693,12 +693,12 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Stop specific playback. If <see cref="InterruptionFadeDuration"/> is non-zero value, will fade the sound first, then stop it.
 		/// </summary>
-		public virtual void Stop(PlaybackState playback) => Stop(playback, InterruptionFadeDuration);
+		public virtual void Stop(AudioPlayback playback) => Stop(playback, InterruptionFadeDuration);
 
 		/// <summary>
 		/// Stop specific playback. If <see cref="interruptionFadeDuration"/> is non-zero value, will fade the sound first, then stop it.
 		/// </summary>
-		public virtual void Stop(PlaybackState playback, float interruptionFadeDuration)
+		public virtual void Stop(AudioPlayback playback, float interruptionFadeDuration)
 		{
 			// Not one of ours or it already finished.
 			if (!m_ActivePlaybacks.Contains(playback))
@@ -738,7 +738,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Instantly stop all active playbacks except the one provided.
 		/// </summary>
-		public virtual void StopAllPlaybacksExcept(PlaybackState keptPlayback)
+		public virtual void StopAllPlaybacksExcept(AudioPlayback keptPlayback)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
@@ -755,7 +755,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Instantly stop all active playbacks that use the given asset.
 		/// </summary>
-		public virtual void StopAllPlaybacksWithAsset(AudioPlayerAsset asset, PlaybackState excludePlayback = null)
+		public virtual void StopAllPlaybacksWithAsset(AudioPlayerAsset asset, AudioPlayback excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
@@ -938,7 +938,7 @@ namespace DevLocker.Audio
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioClip clip, GameObject gameObject = null)
+		public static AudioPlayback Play2DAudio(AudioClip clip, GameObject gameObject = null)
 			=> Play2DAudio(new AudioReferenceProperty(clip), gameObject);
 
 		/// <summary>
@@ -946,7 +946,7 @@ namespace DevLocker.Audio
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioPlayerAsset asset, GameObject gameObject = null)
+		public static AudioPlayback Play2DAudio(AudioPlayerAsset asset, GameObject gameObject = null)
 			=> Play2DAudio(new AudioReferenceProperty(asset), gameObject);
 
 		/// <summary>
@@ -954,7 +954,7 @@ namespace DevLocker.Audio
 		/// If no game object is specified a default one will be used.
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play2DAudio(AudioReferenceProperty audioReference, GameObject gameObject = null)
+		public static AudioPlayback Play2DAudio(AudioReferenceProperty audioReference, GameObject gameObject = null)
 		{
 			AudioSourcePlayer player;
 			bool setAsDefaultPlayer = false;
@@ -993,7 +993,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioClip clip, GameObject gameObject, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioClip clip, GameObject gameObject, AudioSource template = null)
 			=> Play3DAudio(new AudioReferenceProperty(clip), gameObject, template);
 
 		/// <summary>
@@ -1001,7 +1001,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, GameObject gameObject, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioPlayerAsset asset, GameObject gameObject, AudioSource template = null)
 			=> Play3DAudio(new AudioReferenceProperty(asset), gameObject, template);
 
 		/// <summary>
@@ -1009,7 +1009,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, GameObject gameObject, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioReferenceProperty audioReference, GameObject gameObject, AudioSource template = null)
 		{
 			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
 
@@ -1035,7 +1035,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioClip clip, Vector3 position, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioClip clip, Vector3 position, AudioSource template = null)
 			=> Play3DAudio(new AudioReferenceProperty(clip), position, template);
 
 		/// <summary>
@@ -1043,7 +1043,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioPlayerAsset asset, Vector3 position, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioPlayerAsset asset, Vector3 position, AudioSource template = null)
 			=> Play3DAudio(new AudioReferenceProperty(asset), position, template);
 
 		/// <summary>
@@ -1051,7 +1051,7 @@ namespace DevLocker.Audio
 		/// Provide template to specify the spatial blend curve (or leave empty for the defaults).
 		/// If you want to control the player, set the player yourself.
 		/// </summary>
-		public static PlaybackState Play3DAudio(AudioReferenceProperty audioReference, Vector3 position, AudioSource template = null)
+		public static AudioPlayback Play3DAudio(AudioReferenceProperty audioReference, Vector3 position, AudioSource template = null)
 		{
 			// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
 			AudioSourcePlayer player = new GameObject("One Shot 3D Audio").AddComponent<AudioSourcePlayer>();
@@ -1077,12 +1077,12 @@ namespace DevLocker.Audio
 
 		#endregion
 
-		private IEnumerator StartAssetPlayback(AudioPlayerAsset asset, float delay, PlaybackState playback)
+		private IEnumerator StartAssetPlayback(AudioPlayerAsset asset, float delay, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = true;
 			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutput(asset);
-			playback.AudioSource.loop = GetEffectiveRepeatPattern(asset).IsPatternLoop;
-			playback.RepeatPattern = GetEffectiveRepeatPattern(asset);
+			playback.AudioSource.loop = GetEffectiveRepeatSettings(asset).IsLoop;
+			playback.Repeat = GetEffectiveRepeatSettings(asset);
 
 			playback.Template = GetEffectiveTemplate(asset);
 			if (playback.Template) {
@@ -1115,12 +1115,12 @@ namespace DevLocker.Audio
 			}
 		}
 
-		private void StartResourcePlayback(AudioResource resource, float delay, PlaybackState playback)
+		private void StartResourcePlayback(AudioResource resource, float delay, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = false;
 			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutput();
-			playback.AudioSource.loop = GetEffectiveRepeatPattern().IsPatternLoop;
-			playback.RepeatPattern = GetEffectiveRepeatPattern();
+			playback.AudioSource.loop = GetEffectiveRepeatSettings().IsLoop;
+			playback.Repeat = GetEffectiveRepeatSettings();
 
 			playback.Template = GetEffectiveTemplate();
 			if (playback.Template) {
@@ -1146,7 +1146,7 @@ namespace DevLocker.Audio
 				return;
 
 			for (int i = 0; i < m_ActivePlaybacks.Count; i++) {
-				PlaybackState playback = m_ActivePlaybacks[i];
+				AudioPlayback playback = m_ActivePlaybacks[i];
 
 				// Will be handled by the coroutine itself.
 				if (playback.StopFadeCoroutine != null)
@@ -1164,14 +1164,14 @@ namespace DevLocker.Audio
 					playback.AudioSource.transform.position = transform.position;
 				}
 
-				bool isRepeatIntervalPattern = !playback.IsUsingConductors && playback.RepeatPattern.IsPatternInterval;
-				if (isRepeatIntervalPattern) {
+				bool isLoopWithIntervalMode = !playback.IsUsingConductors && playback.Repeat.IsInterval;
+				if (isLoopWithIntervalMode) {
 
-					if (playback.AudioSource.isPlaying != playback.LastIsPlayingForRepeatInterval) {
+					if (playback.AudioSource.isPlaying != playback.LastIsPlayingForLoopWithInterval) {
 						if (!playback.AudioSource.isPlaying) {
-							playback.NextPlayTime = Time.unscaledTime + playback.RepeatPattern.NextIntervalValue();
+							playback.NextPlayTime = Time.unscaledTime + playback.Repeat.RollInterval();
 						}
-						playback.LastIsPlayingForRepeatInterval = playback.AudioSource.isPlaying;
+						playback.LastIsPlayingForLoopWithInterval = playback.AudioSource.isPlaying;
 					}
 
 					if (!playback.AudioSource.isPlaying && Time.unscaledTime >= playback.NextPlayTime) {
@@ -1181,9 +1181,9 @@ namespace DevLocker.Audio
 			}
 		}
 
-		private PlaybackState AcquireAudioPlayback()
+		private AudioPlayback AcquireAudioPlayback()
 		{
-			PlaybackState playback;
+			AudioPlayback playback;
 
 			if (m_AudioSourcesPool.Count > 0 && m_SourcesPoolMode != AudioSourcesPoolMode.GlobalPool) {
 				var source = m_AudioSourcesPool.Dequeue();
@@ -1203,7 +1203,7 @@ namespace DevLocker.Audio
 				}
 #endif
 
-				playback = new PlaybackState(this, source, m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
+				playback = new AudioPlayback(this, source, m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
 				m_ActivePlaybacks.Add(playback);
 
 				return playback;
@@ -1211,7 +1211,7 @@ namespace DevLocker.Audio
 
 			switch (m_SourcesPoolMode) {
 				case AudioSourcesPoolMode.PlayerObjectPool:
-					playback = new PlaybackState(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
+					playback = new AudioPlayback(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.PlayerChildPool:
@@ -1221,7 +1221,7 @@ namespace DevLocker.Audio
 						childContainer.SetParent(transform, worldPositionStays: false);
 					}
 
-					playback = new PlaybackState(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
+					playback = new AudioPlayback(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.GlobalPool:
@@ -1229,7 +1229,7 @@ namespace DevLocker.Audio
 					if (AudioSourcesGlobalPool.Instance == null)
 						return null;
 					
-					playback = new PlaybackState(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_RepeatPattern, Time.unscaledTime);
+					playback = new AudioPlayback(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
 					playback.AudioSource.transform.position = transform.position;   // Global pool sources are not children of this object, so we need to set their position manually.
 					break;
 
@@ -1253,7 +1253,7 @@ namespace DevLocker.Audio
 			return playback;
 		}
 
-		private void ReleaseAudioPlayback(PlaybackState playback, bool stopSource = true)
+		private void ReleaseAudioPlayback(AudioPlayback playback, bool stopSource = true)
 		{
 			if (playback.AudioSource == null) {
 				m_ActivePlaybacks.Remove(playback);

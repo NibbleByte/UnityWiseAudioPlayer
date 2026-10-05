@@ -88,7 +88,7 @@ namespace DevLocker.Audio
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer.PlaybackState playback)
+		private void OnPlayStarted(AudioSourcePlayer.AudioPlayback playback)
 		{
 			if (StopTargetsOnWhenPlaying == playback.Player) {
 				StopTargets();

@@ -4,15 +4,15 @@ using System.Collections.Generic;
 
 namespace DevLocker.Audio.Editor
 {
-	[CustomPropertyDrawer(typeof(AudioSourcePlayer.RepeatOptions))]
+	[CustomPropertyDrawer(typeof(AudioSourcePlayer.RepeatSettings))]
 	public class RepeatOptionsDrawer : PropertyDrawer
 	{
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			var patternProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.Pattern));
-			var patternType = (AudioSourcePlayer.RepeatPatternType)patternProp.intValue;
+			var modeProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.Mode));
+			var modeType = (AudioSourcePlayer.RepeatMode)modeProp.intValue;
 
-			if (patternType != AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+			if (modeType != AudioSourcePlayer.RepeatMode.LoopWithInterval) {
 				return EditorGUIUtility.singleLineHeight;
 			}
 
@@ -25,14 +25,14 @@ namespace DevLocker.Audio.Editor
 
 			position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-			var patternProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.Pattern));
-			var patternType = (AudioSourcePlayer.RepeatPatternType)patternProp.intValue;
+			var modeProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.Mode));
+			var modeType = (AudioSourcePlayer.RepeatMode)modeProp.intValue;
 
 			var patternRect = position;
 			patternRect.height = EditorGUIUtility.singleLineHeight;
-			EditorGUI.PropertyField(patternRect, patternProp, GUIContent.none);
+			EditorGUI.PropertyField(patternRect, modeProp, GUIContent.none);
 
-			if (patternType == AudioSourcePlayer.RepeatPatternType.RepeatInterval) {
+			if (modeType == AudioSourcePlayer.RepeatMode.LoopWithInterval) {
 				var intervalLineRect = position;
 				intervalLineRect.y = position.y + position.height - EditorGUIUtility.singleLineHeight;
 				intervalLineRect.height = EditorGUIUtility.singleLineHeight;
@@ -46,8 +46,8 @@ namespace DevLocker.Audio.Editor
 				maxValue.x += intervalLineRect.width / 2;
 				float oldLabelWidth = EditorGUIUtility.labelWidth;
 				EditorGUIUtility.labelWidth = 30f;
-				EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.MinSeconds)), new GUIContent("Min"));
-				EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatOptions.MaxSeconds)), new GUIContent("Max"));
+				EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.MinSeconds)), new GUIContent("Min"));
+				EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.MaxSeconds)), new GUIContent("Max"));
 				EditorGUIUtility.labelWidth = oldLabelWidth;
 			}
 
@@ -156,7 +156,7 @@ namespace DevLocker.Audio.Editor
 				DrawPropertiesExcluding(serializedObject, "m_Script");
 			} else {
 				DrawPropertiesExcluding(serializedObject, "m_Script",
-					"m_" + nameof(AudioSourcePlayer.RepeatPattern),
+					"m_" + nameof(AudioSourcePlayer.Repeat),
 					"m_" + nameof(AudioSourcePlayer.Output),
 					"m_" + nameof(AudioSourcePlayer.Template)
 					);
