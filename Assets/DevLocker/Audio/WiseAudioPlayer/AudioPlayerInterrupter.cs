@@ -7,17 +7,17 @@ namespace DevLocker.Audio
 	/// <summary>
 	/// Component to quickly stop any playing players directly or players playing specific <see cref="AudioResource"/>s.
 	/// </summary>
-	[AddComponentMenu("Audio/Audio Source Interrupter")]
-	public class AudioSourceInterrupter : MonoBehaviour
+	[AddComponentMenu("Audio/Audio Player Interrupter")]
+	public class AudioPlayerInterrupter : MonoBehaviour
 	{
 		[Header("Which?")]
-		[Tooltip("AudioSourcePlayers to be stopped (interrupted)")]
-		public AudioSourcePlayer[] Players;
+		[Tooltip("AudioPlayer to be stopped (interrupted)")]
+		public AudioPlayer[] Players;
 
-		[Tooltip("AudioSourcePlayers that are playing these AudioResources will be stopped")]
+		[Tooltip("AudioPlayer that are playing these AudioResources will be stopped")]
 		public AudioResource[] Resources;
 
-		[Tooltip("AudioSourcePlayers that are playing AudioResources with names containing this string (case-insensitive) will be stopped")]
+		[Tooltip("AudioPlayer that are playing AudioResources with names containing this string (case-insensitive) will be stopped")]
 		public string ResourceNameContains = "";
 
 		[Header("When?")]
@@ -25,7 +25,7 @@ namespace DevLocker.Audio
 		public bool StopTargetsOnEnable = true;
 
 		[Tooltip("Stop the targets above whenever this player starts a sound.")]
-		public AudioSourcePlayer StopTargetsOnWhenPlaying;
+		public AudioPlayer StopTargetsOnWhenPlaying;
 
 		void OnEnable()
 		{
@@ -34,7 +34,7 @@ namespace DevLocker.Audio
 			}
 
 			if (StopTargetsOnWhenPlaying) {
-				AudioSourcePlayer.PlaybackStarted += OnPlayStarted;
+				AudioPlayer.PlaybackStarted += OnPlayStarted;
 
 				if (StopTargetsOnWhenPlaying.IsPlaying) {
 					StopTargets();
@@ -45,7 +45,7 @@ namespace DevLocker.Audio
 		void OnDisable()
 		{
 			// Always unsubscribe as StopTargetsOnWhenPlaying may have been destroyed, so null check is not valid.
-			AudioSourcePlayer.PlaybackStarted -= OnPlayStarted;
+			AudioPlayer.PlaybackStarted -= OnPlayStarted;
 		}
 
 		public void StopTargets()
@@ -57,7 +57,7 @@ namespace DevLocker.Audio
 			}
 
 			if (Resources.Length > 0 || !string.IsNullOrWhiteSpace(ResourceNameContains)) {
-				foreach (var player in AudioSourcePlayer.ActivePlayers) {
+				foreach (var player in AudioPlayer.ActivePlayers) {
 					if (!player.IsPlaying)
 						continue;
 
@@ -88,7 +88,7 @@ namespace DevLocker.Audio
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer.AudioPlayback playback)
+		private void OnPlayStarted(AudioPlayer.AudioPlayback playback)
 		{
 			if (StopTargetsOnWhenPlaying == playback.Player) {
 				StopTargets();

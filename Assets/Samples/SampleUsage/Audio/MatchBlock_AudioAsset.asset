@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 792939c690b01f44c82bb350f7de1e97, type: 3}
   m_Name: MatchBlock_AudioAsset
   m_EditorClassIdentifier: 
-  StateStorageLocation: 0
+  StateScope: 0
   Repeat:
     Mode: 0
     MinSeconds: 0

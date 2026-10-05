@@ -9,9 +9,9 @@ using UnityEngine.Audio;
 namespace DevLocker.Audio.Editor
 {
 	/// <summary>
-	/// Display any plays/stops/pauses/unpauses done by a <see cref="AudioSourcePlayer"/>
+	/// Display any plays/stops/pauses/unpauses done by a <see cref="AudioPlayer"/>
 	/// </summary>
-	public class AudioSourcePlayerMonitorWindow : EditorWindow
+	public class AudioPlayerMonitorWindow : EditorWindow
 	{
 		private enum ActionType
 		{
@@ -35,7 +35,7 @@ namespace DevLocker.Audio.Editor
 
 			public bool Mute;
 			public bool PlayOnEnable;
-			public AudioSourcePlayer.RepeatMode RepeatMode;
+			public AudioPlayer.RepeatMode RepeatMode;
 			public float Volume;
 			public float Pitch;
 			public float SpatialBlend;
@@ -63,16 +63,16 @@ namespace DevLocker.Audio.Editor
 		[MenuItem("Window/Audio/Wise Audio Monitor")]
 		public static void ShowMonitor()
 		{
-			var window = GetWindow<AudioSourcePlayerMonitorWindow>(false, "Audio Monitor");
+			var window = GetWindow<AudioPlayerMonitorWindow>(false, "Audio Monitor");
 			window.minSize = new Vector2(400f, 200f);
 		}
 
 		void OnEnable()
 		{
-			AudioSourcePlayer.PlaybackStarted += OnPlayStarted;
-			AudioSourcePlayer.PlaybackStopped += OnPlayStopped;
-			AudioSourcePlayer.PlaybackPaused += OnPlayPaused;
-			AudioSourcePlayer.PlaybackUnpaused += OnPlayUnpaused;
+			AudioPlayer.PlaybackStarted += OnPlayStarted;
+			AudioPlayer.PlaybackStopped += OnPlayStopped;
+			AudioPlayer.PlaybackPaused += OnPlayPaused;
+			AudioPlayer.PlaybackUnpaused += OnPlayUnpaused;
 
 			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -80,10 +80,10 @@ namespace DevLocker.Audio.Editor
 
 		void OnDisable()
 		{
-			AudioSourcePlayer.PlaybackStarted -= OnPlayStarted;
-			AudioSourcePlayer.PlaybackStopped -= OnPlayStopped;
-			AudioSourcePlayer.PlaybackPaused -= OnPlayPaused;
-			AudioSourcePlayer.PlaybackUnpaused -= OnPlayUnpaused;
+			AudioPlayer.PlaybackStarted -= OnPlayStarted;
+			AudioPlayer.PlaybackStopped -= OnPlayStopped;
+			AudioPlayer.PlaybackPaused -= OnPlayPaused;
+			AudioPlayer.PlaybackUnpaused -= OnPlayUnpaused;
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -93,15 +93,15 @@ namespace DevLocker.Audio.Editor
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Play, playback);
+		private void OnPlayStarted(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Play, playback);
 
-		private void OnPlayStopped(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Stop, playback);
+		private void OnPlayStopped(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Stop, playback);
 
-		private void OnPlayPaused(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Pause, playback);
+		private void OnPlayPaused(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Pause, playback);
 
-		private void OnPlayUnpaused(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.UnPause, playback);
+		private void OnPlayUnpaused(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.UnPause, playback);
 
-		private void AddAction(ActionType actionType, AudioSourcePlayer.AudioPlayback playback)
+		private void AddAction(ActionType actionType, AudioPlayer.AudioPlayback playback)
 		{
 			if (!m_ListenForEvents)
 				return;
@@ -315,7 +315,7 @@ namespace DevLocker.Audio.Editor
 					GUILayout.Space(toggleMargin);
 					EditorGUILayout.Toggle(action.PlayOnEnable, GUILayout.Width(boolColumnWidth - toggleMargin));
 
-					GUILayout.Label(action.RepeatMode.ToString().Replace(nameof(AudioSourcePlayer.RepeatMode.LoopWithInterval), "Interval"), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
+					GUILayout.Label(action.RepeatMode.ToString().Replace(nameof(AudioPlayer.RepeatMode.LoopWithInterval), "Interval"), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
 
 					EditorGUILayout.FloatField(action.Volume, GUILayout.Width(floatColumnWidth));
 					EditorGUILayout.FloatField(action.Pitch, GUILayout.Width(floatColumnWidth));

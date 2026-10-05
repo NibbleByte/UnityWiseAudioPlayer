@@ -13,7 +13,7 @@ namespace DevLocker.Audio.Conductors
 	{
 		public ClipWithVolumePitch AudioClip;
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (AudioClip.Clip == null) {
 				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
@@ -76,12 +76,12 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (AudioClips.Length == 0)
 				yield break;
 
-			AudioSourcePlayer player = playback.Player;
+			AudioPlayer player = playback.Player;
 
 			// Offsets on top of the selected clip's own volume and pitch. Roll them only once per play.
 			int volumeOffsetDB = VolumeRange.Roll();
@@ -181,14 +181,14 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject VisualEffectsPrefab;
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
 
-			AudioSourcePlayer player = playback.Player;
+			AudioPlayer player = playback.Player;
 
 			if (VisualEffectsPrefab) {
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
@@ -213,14 +213,14 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject[] VisualEffectsPrefabs;
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			var baseIt = base.Play(playback, asset);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
 
-			AudioSourcePlayer player = playback.Player;
+			AudioPlayer player = playback.Player;
 
 			if (VisualEffectsPrefabs.Length > 0) {
 				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
@@ -249,7 +249,7 @@ namespace DevLocker.Audio.Conductors
 
 		public float Overlap = 0f;
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			AudioSource audioSource = playback.AudioSource;
 
@@ -305,9 +305,9 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
-			AudioSourcePlayer player = playback.Player;
+			AudioPlayer player = playback.Player;
 
 			if (AudioClip.Clip == null) {
 				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
@@ -339,7 +339,7 @@ namespace DevLocker.Audio.Conductors
 		/// <summary>
 		/// Helper function to reset the pitch sequence. Useful if <see cref="ResetAfterSeconds"/> is set to 0.
 		/// </summary>
-		public static void ResetPitchIndex(AudioSourcePlayer player)
+		public static void ResetPitchIndex(AudioPlayer player)
 		{
 			if (player == null)
 				return;
@@ -385,7 +385,7 @@ namespace DevLocker.Audio.Conductors
 		public float Overlap = 0.1f;
 		public bool RandomizeSequence = false;
 
-		public override IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
 		{
 			if (Clips.Length == 0)
 				yield break;

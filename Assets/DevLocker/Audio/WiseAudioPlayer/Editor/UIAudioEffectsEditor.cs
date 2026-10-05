@@ -48,8 +48,8 @@ namespace DevLocker.Audio.Editor
 			var excludedPropNames = new List<string> { "m_Script" };
 
 			foreach(var prop in audioProps) {
-				var resourceProp = prop.FindPropertyRelative("m_" + nameof(AudioSourcePlayer.AudioReferenceProperty.AudioResource));
-				var assetProp = prop.FindPropertyRelative("m_" + nameof(AudioSourcePlayer.AudioReferenceProperty.AudioAsset));
+				var resourceProp = prop.FindPropertyRelative("m_" + nameof(AudioPlayer.AudioReferenceProperty.AudioResource));
+				var assetProp = prop.FindPropertyRelative("m_" + nameof(AudioPlayer.AudioReferenceProperty.AudioAsset));
 
 				if (resourceProp.objectReferenceValue == null && assetProp.objectReferenceValue == null && !m_PendingPropNames.Contains(prop.name)) {
 					excludedPropNames.Add(prop.name);

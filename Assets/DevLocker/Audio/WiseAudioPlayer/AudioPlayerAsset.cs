@@ -8,7 +8,7 @@ using UnityEngine.Audio;
 namespace DevLocker.Audio
 {
 	/// <summary>
-	/// Asset used by the <see cref="AudioSourcePlayer"/> to play sound in a specific way with given filters.
+	/// Asset used by the <see cref="AudioPlayer"/> to play sound in a specific way with given filters.
 	/// </summary>
 	[CreateAssetMenu(fileName = "Unknown_AudioAsset", menuName = "Audio/Audio Player Asset")]
 	public class AudioPlayerAsset : ScriptableObject
@@ -31,7 +31,7 @@ namespace DevLocker.Audio
 		[Serializable]
 		public abstract class AudioConductor
 		{
-			public abstract IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, AudioPlayerAsset asset);
+			public abstract IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset);
 
 			public virtual void OnValidate(AudioPlayerAsset context) { }
 		}
@@ -42,7 +42,7 @@ namespace DevLocker.Audio
 		[Serializable]
 		public abstract class AudioConductorFilter
 		{
-			public abstract bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset);
+			public abstract bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset);
 
 			public virtual void OnValidate(AudioPlayerAsset context) { }
 		}
@@ -75,8 +75,8 @@ namespace DevLocker.Audio
 		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Asset: shared by all players.\nPer Player: each player has its own.\n\nFor example, should screams shuffle per character or globally?")]
 		public ConductorsStateScope StateScope;
 
-		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioSourcePlayer setting.")]
-		public AudioSourcePlayer.RepeatSettings Repeat;
+		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioPlayer setting.")]
+		public AudioPlayer.RepeatSettings Repeat;
 
 		[Tooltip("When this asset starts, what happens to the sounds already playing on the same player: keep them, stop them all, or stop only the ones from this asset. Stops are instant.")]
 		public InterruptSoundsMode InterruptMode;
@@ -84,7 +84,7 @@ namespace DevLocker.Audio
 		[Tooltip("Seconds to wait before the asset starts. Not repeated when looping.")]
 		public float Delay = 0f;
 
-		[Tooltip("Mixer group to output to. Overrides the AudioSourcePlayer's mixer. If empty, uses the template's mixer.")]
+		[Tooltip("Mixer group to output to. Overrides the AudioPlayer's mixer. If empty, uses the template's mixer.")]
 		public AudioMixerGroup OutputMixer;
 
 		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.")]
@@ -99,19 +99,19 @@ namespace DevLocker.Audio
 		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
 
 
-		public IEnumerator Play(AudioSourcePlayer.AudioPlayback playback, object context)
+		public IEnumerator Play(AudioPlayer.AudioPlayback playback, object context)
 		{
-			AudioSourcePlayer player = playback.Player;
+			AudioPlayer player = playback.Player;
 			AudioSource source = playback.AudioSource;
 
 			switch (Repeat.Mode) {
-				case AudioSourcePlayer.RepeatMode.Once:
+				case AudioPlayer.RepeatMode.Once:
 					source.loop = false;
 					break;
-				case AudioSourcePlayer.RepeatMode.Loop:
+				case AudioPlayer.RepeatMode.Loop:
 					source.loop = true;
 					break;
-				case AudioSourcePlayer.RepeatMode.LoopWithInterval:
+				case AudioPlayer.RepeatMode.LoopWithInterval:
 					source.loop = false;
 					break;
 				default:
@@ -231,7 +231,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Get conductors storage value based on the <see cref="ConductorsStateStorage"/> setting.
 		/// </summary>
-		public T GetConductorsStorageValue<T>(string keyName, AudioSourcePlayer audioPlayer, T defaultValue)
+		public T GetConductorsStorageValue<T>(string keyName, AudioPlayer audioPlayer, T defaultValue)
 		{
 			object objValue;
 
@@ -259,7 +259,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Set conductors storage value based on the <see cref="ConductorsStateStorage"/> setting.
 		/// </summary>
-		public void SetConductorsStorageValue(string keyName, AudioSourcePlayer audioPlayer, object value)
+		public void SetConductorsStorageValue(string keyName, AudioPlayer audioPlayer, object value)
 		{
 			switch (StateScope) {
 

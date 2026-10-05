@@ -454,7 +454,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 800194855}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Stop
         m_Mode: 1
         m_Arguments:
@@ -630,7 +630,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -690,7 +690,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 130796954}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -1273,7 +1273,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 281578831}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -1333,7 +1333,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 8300000, guid: 073923c8ea3f7b44eafd7817e0a80f99, type: 3}
@@ -1432,7 +1432,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 603675968}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Stop
         m_Mode: 4
         m_Arguments:
@@ -1444,7 +1444,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
       - m_Target: {fileID: 1006511319}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Stop
         m_Mode: 4
         m_Arguments:
@@ -1544,7 +1544,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -1604,7 +1604,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 340866005}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -2486,7 +2486,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 8300000, guid: acd68b63ee5a9d94b807fa5857eca272, type: 3}
@@ -2546,7 +2546,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1006511319}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Stop
         m_Mode: 4
         m_Arguments:
@@ -2558,7 +2558,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
       - m_Target: {fileID: 603675968}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -2678,7 +2678,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 6418180475301049370, guid: 93531acf8e045bf4d9545f36ed1bfcf6, type: 2}
@@ -2738,7 +2738,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 612288408}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -3011,7 +3011,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -3071,7 +3071,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 800194855}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -3172,7 +3172,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6db45e74018c2d4bb39fe57f945bd5e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourceInterrupter
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayerInterrupter
   Players:
   - {fileID: 603675968}
   Resources: []
@@ -3190,7 +3190,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -3250,7 +3250,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 840479434}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -3707,7 +3707,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -3767,7 +3767,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 929276870}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -3847,7 +3847,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -3907,7 +3907,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 603675968}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Stop
         m_Mode: 4
         m_Arguments:
@@ -3919,7 +3919,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
       - m_Target: {fileID: 1006511319}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -4176,7 +4176,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -4236,7 +4236,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1094308162}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -5995,7 +5995,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -6055,7 +6055,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1587753206}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:
@@ -6784,7 +6784,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 85ab2fdf287245643aeb1a63850cdc65, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourcePlayer
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioPlayer
   m_SourcesPoolMode: 0
   m_AudioReference:
     m_AudioResource: {fileID: 0}
@@ -6844,7 +6844,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1895515776}
-        m_TargetAssemblyTypeName: DevLocker.Audio.AudioSourcePlayer, DevLocker.Audio.WiseAudioPlayer
+        m_TargetAssemblyTypeName: DevLocker.Audio.AudioPlayer, DevLocker.Audio.WiseAudioPlayer
         m_MethodName: Play
         m_Mode: 1
         m_Arguments:

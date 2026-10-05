@@ -14,8 +14,8 @@ namespace DevLocker.Audio
 	///
 	/// Can play multiple sounds at the same time which results in multiple AudioSources used.
 	/// </summary>
-	[AddComponentMenu("Audio/Audio Source Player")]
-	public class AudioSourcePlayer : MonoBehaviour
+	[AddComponentMenu("Audio/Audio Player")]
+	public class AudioPlayer : MonoBehaviour
 	{
 		public enum AudioSourcesPoolMode
 		{
@@ -111,7 +111,7 @@ namespace DevLocker.Audio
 		public class AudioPlayback
 		{
 			public readonly AudioSourcesPoolMode SourcesPoolMode;
-			public AudioSourcePlayer Player { get; internal set; }
+			public AudioPlayer Player { get; internal set; }
 			public AudioSource AudioSource { get; internal set; }
 			public AudioPlayerAsset AudioPlayerAsset { get; internal set; }
 			public bool HasConductorFinished { get; internal set; }
@@ -135,7 +135,7 @@ namespace DevLocker.Audio
 
 			internal bool WasCancelled;
 
-			public AudioPlayback(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatSettings repeat, float startTimeUnscaled)
+			public AudioPlayback(AudioPlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatSettings repeat, float startTimeUnscaled)
 			{
 				SourcesPoolMode = poolMode;
 				AudioSource = audioSource;
@@ -148,7 +148,7 @@ namespace DevLocker.Audio
 
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
 			public void PlayClip(AudioClip clip, float volume = 1.0f, float pitch = 1.0f)
 			{
@@ -179,7 +179,7 @@ namespace DevLocker.Audio
 
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
 			public void PlayClip(ClipWithVolume clipPair, float pitch = 1.0f, int volumeOffsetDB = 0)
 			{
@@ -198,7 +198,7 @@ namespace DevLocker.Audio
 
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
 			public void PlayClip(ClipWithVolumePitch clipPair, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
 			{
@@ -220,7 +220,7 @@ namespace DevLocker.Audio
 
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
 			public void PlayResource(AudioResource resource, float pitch = 1.0f)
 			{
@@ -235,7 +235,7 @@ namespace DevLocker.Audio
 
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
+			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
 			public void PlayResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
 			{
@@ -428,7 +428,7 @@ namespace DevLocker.Audio
 
 		public IReadOnlyList<AudioPlayback> ActivePlaybacks => m_ActivePlaybacks.AsReadOnly();
 
-		public static IReadOnlyList<AudioSourcePlayer> ActivePlayers => m_ActivePlayers.AsReadOnly();
+		public static IReadOnlyList<AudioPlayer> ActivePlayers => m_ActivePlayers.AsReadOnly();
 
 		[SerializeField]
 		[Tooltip("Each sound that overlaps an already playing one gets its own AudioSource. Sources are reused once they finish.\n\n" +
@@ -472,14 +472,14 @@ namespace DevLocker.Audio
 		[Tooltip("Volume for newly started sounds. Doesn't affect sounds already playing.")]
 		private float m_Volume = 1f;
 
-		private static readonly List<AudioSourcePlayer> m_ActivePlayers = new List<AudioSourcePlayer>();
+		private static readonly List<AudioPlayer> m_ActivePlayers = new List<AudioPlayer>();
 
 		private List<AudioPlayback> m_ActivePlaybacks = new List<AudioPlayback>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
-		private const string ChildPoolContainerName = "__AudioSourcePlayerPool__";
+		private const string ChildPoolContainerName = "__AudioPlayerPool__";
 
 		// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
-		public static AudioSourcePlayer Quick2DPlayer;
+		public static AudioPlayer Quick2DPlayer;
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void ClearStaticsCache()
@@ -956,7 +956,7 @@ namespace DevLocker.Audio
 		/// </summary>
 		public static AudioPlayback Play2DAudio(AudioReferenceProperty audioReference, GameObject gameObject = null)
 		{
-			AudioSourcePlayer player;
+			AudioPlayer player;
 			bool setAsDefaultPlayer = false;
 
 			if (gameObject == null) {
@@ -967,11 +967,11 @@ namespace DevLocker.Audio
 
 				player = Quick2DPlayer;
 			} else {
-				player = gameObject.GetComponent<AudioSourcePlayer>();
+				player = gameObject.GetComponent<AudioPlayer>();
 			}
 
 			if (player == null) {
-				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player = gameObject.AddComponent<AudioPlayer>();
 				player.PlayOnEnable = false;
 
 				// This is not needed as audio sources by default are 2D.
@@ -1011,10 +1011,10 @@ namespace DevLocker.Audio
 		/// </summary>
 		public static AudioPlayback Play3DAudio(AudioReferenceProperty audioReference, GameObject gameObject, AudioSource template = null)
 		{
-			AudioSourcePlayer player = gameObject.GetComponent<AudioSourcePlayer>();
+			AudioPlayer player = gameObject.GetComponent<AudioPlayer>();
 
 			if (player == null) {
-				player = gameObject.AddComponent<AudioSourcePlayer>();
+				player = gameObject.AddComponent<AudioPlayer>();
 				player.PlayOnEnable = false;
 
 				if (template == null) {
@@ -1054,7 +1054,7 @@ namespace DevLocker.Audio
 		public static AudioPlayback Play3DAudio(AudioReferenceProperty audioReference, Vector3 position, AudioSource template = null)
 		{
 			// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
-			AudioSourcePlayer player = new GameObject("One Shot 3D Audio").AddComponent<AudioSourcePlayer>();
+			AudioPlayer player = new GameObject("One Shot 3D Audio").AddComponent<AudioPlayer>();
 			player.gameObject.hideFlags = HideFlags.HideInHierarchy;
 			player.transform.position = position;
 			player.PlayOnEnable = false;

@@ -32,25 +32,25 @@ namespace DevLocker.Audio
 		[Header("Template Overrides")]
 
 		[Tooltip("Submit is called on pressing <Enter> or gamepad <A>, but NOT on pointer clicks.")]
-		public AudioSourcePlayer.AudioReferenceProperty SubmitAudio;
+		public AudioPlayer.AudioReferenceProperty SubmitAudio;
 		[Tooltip("OnClick is called only for pointer clicks, NOT on pressing <Enter> or gamepad <A>.")]
-		public AudioSourcePlayer.AudioReferenceProperty PointerClickAudio;
+		public AudioPlayer.AudioReferenceProperty PointerClickAudio;
 
-		public AudioSourcePlayer.AudioReferenceProperty PointerDownAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerUpAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerEnterAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerExitAudio;
+		public AudioPlayer.AudioReferenceProperty PointerDownAudio;
+		public AudioPlayer.AudioReferenceProperty PointerUpAudio;
+		public AudioPlayer.AudioReferenceProperty PointerEnterAudio;
+		public AudioPlayer.AudioReferenceProperty PointerExitAudio;
 
-		public AudioSourcePlayer.AudioReferenceProperty SelectAudio;
-		public AudioSourcePlayer.AudioReferenceProperty DeselectAudio;
+		public AudioPlayer.AudioReferenceProperty SelectAudio;
+		public AudioPlayer.AudioReferenceProperty DeselectAudio;
 
-		public AudioSourcePlayer AudioPlayer { get; private set; }
+		public AudioPlayer AudioPlayer { get; private set; }
 		public AudioSource AudioSource { get; private set; }
 		private Selectable m_Selectable;
 
 		void Awake()
 		{
-			AudioPlayer = GetComponent<AudioSourcePlayer>() ?? gameObject.AddComponent<AudioSourcePlayer>();
+			AudioPlayer = GetComponent<AudioPlayer>() ?? gameObject.AddComponent<AudioPlayer>();
 
 			if (Template) {
 
@@ -108,7 +108,7 @@ namespace DevLocker.Audio
 			DeselectAudio.OnValidate(this);
 		}
 
-		private void PlayAudio(AudioSourcePlayer.AudioReferenceProperty audioReference)
+		private void PlayAudio(AudioPlayer.AudioReferenceProperty audioReference)
 		{
 			if (!audioReference.HasValidReference)
 				return;
@@ -129,7 +129,7 @@ namespace DevLocker.Audio
 
 		#region Helper behaviours
 
-		private void SetupHandler<T>(AudioSourcePlayer.AudioReferenceProperty audioReference) where T : UIAudioEffects_EventHandler
+		private void SetupHandler<T>(AudioPlayer.AudioReferenceProperty audioReference) where T : UIAudioEffects_EventHandler
 		{
 			if (!audioReference.HasValidReference)
 				return;

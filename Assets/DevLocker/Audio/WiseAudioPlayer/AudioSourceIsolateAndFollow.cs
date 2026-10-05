@@ -13,7 +13,7 @@ namespace DevLocker.Audio
 	/// This way references to the players remain and currently playing sounds won't get interrupted.
 	/// </summary>
 	[AddComponentMenu("Audio/Audio Source Isolate And Follow")]
-	[RequireComponent(typeof(AudioSourcePlayer))]
+	[RequireComponent(typeof(AudioPlayer))]
 	public class AudioSourceIsolateAndFollow : MonoBehaviour
 	{
 		[Tooltip("If original object gets disabled, should any playing sound be \"interrupted\", so it can quickly fade out gracefully?")]
@@ -26,7 +26,7 @@ namespace DevLocker.Audio
 		private bool m_LinkActive;
 		private bool m_LinkDestroyInterrupted;
 
-		private AudioSourcePlayer[] m_Players;
+		private AudioPlayer[] m_Players;
 
 		private static Transform m_IsolateRoot;
 
@@ -37,7 +37,7 @@ namespace DevLocker.Audio
 
 		void Start()
 		{
-			m_Players = GetComponents<AudioSourcePlayer>();
+			m_Players = GetComponents<AudioPlayer>();
 
 			if (transform.parent == null) {
 				Debug.LogError($"\"{name}\" has no parent, which is required by the {nameof(AudioSourceIsolateAndFollow)}", this);
