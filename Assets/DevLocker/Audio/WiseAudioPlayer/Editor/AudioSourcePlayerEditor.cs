@@ -157,7 +157,7 @@ namespace DevLocker.Audio.Editor
 			} else {
 				DrawPropertiesExcluding(serializedObject, "m_Script",
 					"m_" + nameof(AudioSourcePlayer.Repeat),
-					"m_" + nameof(AudioSourcePlayer.Output),
+					"m_" + nameof(AudioSourcePlayer.OutputMixer),
 					"m_" + nameof(AudioSourcePlayer.Template)
 					);
 			}

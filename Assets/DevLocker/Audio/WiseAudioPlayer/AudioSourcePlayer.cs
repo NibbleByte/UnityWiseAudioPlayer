@@ -122,7 +122,7 @@ namespace DevLocker.Audio
 			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
 
 			public RepeatSettings Repeat { get; internal set; }
-			public AudioMixerGroup Output => AudioSource ? AudioSource.outputAudioMixerGroup : null;
+			public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 			public AudioSource Template { get; internal set; }
 
 			internal Coroutine ConductorCoroutine;
@@ -338,16 +338,16 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Output mixer to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
 		/// </summary>
-		public AudioMixerGroup Output { get => m_Output; set => m_Output = value; }
+		public AudioMixerGroup OutputMixer { get => m_OutputMixer; set => m_OutputMixer = value; }
 
 		/// <summary>
 		/// Since <see cref="AudioPlayerAsset"/> can override the output mixer, call this to get the effective output mixer to be used.
 		/// </summary>
-		public AudioMixerGroup GetEffectiveOutput(AudioPlayerAsset asset = null)
+		public AudioMixerGroup GetEffectiveOutputMixer(AudioPlayerAsset asset = null)
 		{
 			if (asset == null) {
-				if (m_Output)
-					return m_Output;
+				if (m_OutputMixer)
+					return m_OutputMixer;
 
 				if (m_Template)
 					return m_Template.outputAudioMixerGroup;
@@ -446,7 +446,7 @@ namespace DevLocker.Audio
 
 		[SerializeField]
 		[Tooltip("Audio mixer to use.\n\nWill be overriden by the audio asset's mixer.\nIf left empty, it will copy the one of the template")]
-		private AudioMixerGroup m_Output;
+		private AudioMixerGroup m_OutputMixer;
 
 		[SerializeField]
 		[Tooltip("Prefab (or scene object) to be used as template when initializing the AudioSource properties.\n\nWill be overriden by the audio asset's template.")]
@@ -1080,7 +1080,7 @@ namespace DevLocker.Audio
 		private IEnumerator StartAssetPlayback(AudioPlayerAsset asset, float delay, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = true;
-			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutput(asset);
+			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutputMixer(asset);
 			playback.AudioSource.loop = GetEffectiveRepeatSettings(asset).IsLoop;
 			playback.Repeat = GetEffectiveRepeatSettings(asset);
 
@@ -1118,7 +1118,7 @@ namespace DevLocker.Audio
 		private void StartResourcePlayback(AudioResource resource, float delay, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = false;
-			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutput();
+			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutputMixer();
 			playback.AudioSource.loop = GetEffectiveRepeatSettings().IsLoop;
 			playback.Repeat = GetEffectiveRepeatSettings();
 
