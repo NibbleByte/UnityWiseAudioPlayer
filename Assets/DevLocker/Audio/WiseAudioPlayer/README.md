@@ -26,7 +26,9 @@ Replace all your Unity `AudioSource` components with `AudioSourcePlayer`, which 
 
 `AudioSourcePlayer` doesn't include all of the `AudioSource`'s details and curves. Instead, you can specify an `AudioSource` template prefab to copy the details from, giving you an easy way to reuse them.
 
-"Interrupt Fade Duration" is used when the sound is manually stopped in any way, to give it a nice fade out. Even so, sounds will still stop immediately when the game object or component is destroyed.
+A player can play multiple sounds at the same time, each on its own `AudioSource`. "Sources Pool Mode" sets where these sources are created: on the player object, on a child object, or in a global pool. Sounds on the player object or its child stop immediately when it is destroyed, while sounds in the global pool are allowed to finish (looping sounds are still stopped).
+
+"Interruption Fade Duration" is used when sounds are stopped, paused or unpaused, to give them a nice fade. 
 
 Make sure all your sounds are played through the `AudioSourcePlayer` component or API so they're visible in the `Audio Monitor` debugging tool.
 
@@ -45,7 +47,7 @@ The asset offers you a list of `Conductors`. Each conductor has a filter that ch
 
 ![Conductor Examples](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/ConductorFiltersShot.png)
 
-Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. Conductors can store their state on the `AudioSourcePlayer` component (per audio player) or on the asset itself (per asset). You can set the location in the asset's "State Storage Location" setting.
+Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. Conductors can store their state on the `AudioSourcePlayer` component (per audio player) or on the asset itself (per asset). You can choose this in the asset's "State Scope" setting.
 
 ### Audio Monitor
 ![Audio Monitor editor window](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/AudioMonitorShot.png)
