@@ -635,7 +635,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 180d346d21baa1b4181763a5d10e2686, type: 2}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -1338,7 +1338,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 8300000, guid: 073923c8ea3f7b44eafd7817e0a80f99, type: 3}
     m_AudioAsset: {fileID: 0}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -1549,7 +1549,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: c0e5b1f56d87e3949a584e9ea05926d6, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -2491,7 +2491,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 8300000, guid: acd68b63ee5a9d94b807fa5857eca272, type: 3}
     m_AudioAsset: {fileID: 0}
-  m_Output: {fileID: 6756489236935666581, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_OutputMixer: {fileID: 6756489236935666581, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -2683,7 +2683,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 6418180475301049370, guid: 93531acf8e045bf4d9545f36ed1bfcf6, type: 2}
     m_AudioAsset: {fileID: 0}
-  m_Output: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+  m_OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3016,7 +3016,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 96981d7340dfde84397fb161a0498ea1, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3195,7 +3195,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 8eda6599405a3444f815d2bd780fca17, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3712,7 +3712,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 4af85a9e863d21748835982810baee08, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -3852,7 +3852,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 1d988dfebd9a1a14e8d8a2bbad1a961b, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -4181,7 +4181,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 8eda6599405a3444f815d2bd780fca17, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -6000,7 +6000,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: ec742a6240b6b694a873cce1df73f804, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
@@ -6789,7 +6789,7 @@ MonoBehaviour:
   m_AudioReference:
     m_AudioResource: {fileID: 0}
     m_AudioAsset: {fileID: 11400000, guid: 73e7d7732348371458bc91a8f626f5b7, type: 2}
-  m_Output: {fileID: 0}
+  m_OutputMixer: {fileID: 0}
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0

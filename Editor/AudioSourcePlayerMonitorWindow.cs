@@ -117,7 +117,7 @@ namespace DevLocker.Audio.Editor
 				Player = playback.Player,
 				Resource = playback.AudioSource.resource,
 				Asset = playback.AudioPlayerAsset,
-				MixerGroup = playback.Output,
+				MixerGroup = playback.OutputMixer,
 				Template = playback.Template,
 
 				Mute = playback.Player.Mute,

@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace DevLocker.Audio.Utils.Editor
 {
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioPredicate))]
-	public class AudioPredicateDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
+	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioConductorFilter))]
+	public class AudioConductorFilterDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
 

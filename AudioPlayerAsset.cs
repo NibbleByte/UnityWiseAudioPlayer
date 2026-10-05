@@ -40,7 +40,7 @@ namespace DevLocker.Audio
 		/// Used as filters when choosing which conductor to play.
 		/// </summary>
 		[Serializable]
-		public abstract class AudioPredicate
+		public abstract class AudioConductorFilter
 		{
 			public abstract bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset);
 
@@ -69,7 +69,7 @@ namespace DevLocker.Audio
 
 			[Tooltip("All filters should be satisfied in order for this event to execute.")]
 			[SerializeReference]
-			public AudioPredicate[] Filters;
+			public AudioConductorFilter[] Filters;
 		}
 
 		[Tooltip("Where to store conductors state (if any)?\nExample: should screams shuffle per character or per asset?")]
