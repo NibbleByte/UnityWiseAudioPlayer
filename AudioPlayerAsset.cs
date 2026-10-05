@@ -47,21 +47,21 @@ namespace DevLocker.Audio
 			public virtual void OnValidate(AudioPlayerAsset context) { }
 		}
 
-		public enum ConductorsStateStorageLocation
+		public enum ConductorsStateScope
 		{
-			Asset,
-			Player,
+			PerAsset,
+			PerPlayer,
 		}
 
 		public enum InterruptSoundsMode
 		{
-			DontInterruptPlayingSounds = 0,
-			InterruptAllPlayingSounds = 1,
-			InterruptPlayingSoundsFromThisAsset = 4,
+			DontInterrupt = 0,
+			InterruptAll = 1,
+			InterruptSameAsset = 4,
 		}
 
 		[Serializable]
-		public struct AudioConductorBind
+		public struct FilteredConductor
 		{
 			[Tooltip("Responsible for playing the desired audio.")]
 			[SerializeReference]
@@ -72,8 +72,8 @@ namespace DevLocker.Audio
 			public AudioConductorFilter[] Filters;
 		}
 
-		[Tooltip("Where to store conductors state (if any)?\nExample: should screams shuffle per character or per asset?")]
-		public ConductorsStateStorageLocation StateStorageLocation;
+		[Tooltip("Scope of the conductors' state (e.g. shuffle order, last clip played). Per Asset: shared by all players. Per Player: each player has its own.")]
+		public ConductorsStateScope StateScope;
 
 		[Tooltip("How sound should be repeated. Loop with interval allows you to specify seconds of silence every time after audio finished playing.\n\nSome conductors may ignore this property and loop on their own.\nThis will override the AudioSourcePlayer setting.")]
 		public AudioSourcePlayer.RepeatSettings Repeat;
@@ -90,7 +90,7 @@ namespace DevLocker.Audio
 		[Tooltip("Prefab to be used as template when initializing the AudioSource properties")]
 		public AudioSource Template;
 
-		public AudioConductorBind[] Conductors;
+		public FilteredConductor[] Conductors;
 
 		/// <summary>
 		/// Used by conductors to persist state per asset between usages. For example: don't repeat last clip.
@@ -119,14 +119,14 @@ namespace DevLocker.Audio
 			}
 
 			switch (InterruptMode) {
-				case InterruptSoundsMode.DontInterruptPlayingSounds:
+				case InterruptSoundsMode.DontInterrupt:
 					// Do nothing.
 					break;
-				case InterruptSoundsMode.InterruptAllPlayingSounds:
-					player.StopAllPlaybacksExcept(playback);
+				case InterruptSoundsMode.InterruptAll:
+					player.StopAllExcept(playback);
 					break;
-				case InterruptSoundsMode.InterruptPlayingSoundsFromThisAsset:
-					player.StopAllPlaybacksWithAsset(this, playback);
+				case InterruptSoundsMode.InterruptSameAsset:
+					player.StopAllWithAsset(this, playback);
 					break;
 				default: throw new NotSupportedException(InterruptMode.ToString());
 			}
@@ -135,9 +135,9 @@ namespace DevLocker.Audio
 			do {
 				assetCustomLoop = false;
 
-				var conductorBind = Conductors.FirstOrDefault(bind => bind.Filters.All(f => f?.IsAllowed(context, player, this) ?? true));
-				if (conductorBind.Conductor != null) {
-					var playConductor = conductorBind.Conductor as Conductors.PlayAudioConductor;
+				var conductorEntry = Conductors.FirstOrDefault(entry => entry.Filters.All(f => f?.IsAllowed(context, player, this) ?? true));
+				if (conductorEntry.Conductor != null) {
+					var playConductor = conductorEntry.Conductor as Conductors.PlayAudioConductor;
 
 					// If conductor has custom logic other than just playing a looped sound,
 					// we implement the loop. Normal sounds should still loop via the source itself,
@@ -147,7 +147,7 @@ namespace DevLocker.Audio
 						playback.AudioSource.loop = false;
 					}
 
-					yield return conductorBind.Conductor.Play(playback, this);
+					yield return conductorEntry.Conductor.Play(playback, this);
 
 				} else {
 
@@ -157,7 +157,7 @@ namespace DevLocker.Audio
 						assetCustomLoop = true;
 						continue;
 					} else {
-						playback.Cancelled = true;
+						playback.WasCancelled = true;
 						yield break;
 					}
 				}
@@ -196,10 +196,10 @@ namespace DevLocker.Audio
 
 			Repeat.OnValidate(this);
 
-			foreach (var conductorBind in Conductors) {
-				conductorBind.Conductor?.OnValidate(this);
+			foreach (var conductorEntry in Conductors) {
+				conductorEntry.Conductor?.OnValidate(this);
 
-				foreach(var filter in conductorBind.Filters) {
+				foreach(var filter in conductorEntry.Filters) {
 					filter?.OnValidate(this);
 				}
 			}
@@ -235,15 +235,15 @@ namespace DevLocker.Audio
 		{
 			object objValue;
 
-			switch (StateStorageLocation) {
+			switch (StateScope) {
 
-				case ConductorsStateStorageLocation.Asset:
+				case ConductorsStateScope.PerAsset:
 					if (ConductorsStateStorage.TryGetValue(keyName, out objValue) && objValue is T) {
 						return (T)objValue;
 					}
 					break;
 
-				case ConductorsStateStorageLocation.Player:
+				case ConductorsStateScope.PerPlayer:
 					if (audioPlayer.ConductorsStateStorage.TryGetValue($"{keyName}_{name}_{GetInstanceID()}", out objValue) && objValue is T) {
 						return (T)objValue;
 					}
@@ -261,13 +261,13 @@ namespace DevLocker.Audio
 		/// </summary>
 		public void SetConductorsStorageValue(string keyName, AudioSourcePlayer audioPlayer, object value)
 		{
-			switch (StateStorageLocation) {
+			switch (StateScope) {
 
-				case ConductorsStateStorageLocation.Asset:
+				case ConductorsStateScope.PerAsset:
 					ConductorsStateStorage[keyName] = value;
 					break;
 
-				case ConductorsStateStorageLocation.Player:
+				case ConductorsStateScope.PerPlayer:
 					audioPlayer.ConductorsStateStorage[$"{keyName}_{name}_{GetInstanceID()}"] = value;
 					break;
 

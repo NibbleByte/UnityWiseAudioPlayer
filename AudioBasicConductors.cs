@@ -20,7 +20,7 @@ namespace DevLocker.Audio.Conductors
 				yield break;
 			}
 
-			playback.PlayDirectClip(AudioClip);
+			playback.PlayClip(AudioClip);
 
 			yield break;
 		}
@@ -91,7 +91,7 @@ namespace DevLocker.Audio.Conductors
 				case PlaybackMode.Sequential:
 					int sequentialIndex = asset.GetConductorsStorageValue(SequentialIndex_StorageKey, player, 0);
 
-					playback.PlayDirectClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
+					playback.PlayClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
 
 					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
 
@@ -106,7 +106,7 @@ namespace DevLocker.Audio.Conductors
 						Shuffle(shuffleIndices);
 					}
 
-					playback.PlayDirectClip(AudioClips[shuffleIndices.LastOrDefault()], volumeOffsetDB, pitchOffsetCents);
+					playback.PlayClip(AudioClips[shuffleIndices.LastOrDefault()], volumeOffsetDB, pitchOffsetCents);
 
 					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
 
@@ -132,7 +132,7 @@ namespace DevLocker.Audio.Conductors
 
 					var clipIndexPair = clipIndexPairs[UnityEngine.Random.Range(0, clipIndexPairs.Count)];
 
-					playback.PlayDirectClip(clipIndexPair.Key, volumeOffsetDB, pitchOffsetCents);
+					playback.PlayClip(clipIndexPair.Key, volumeOffsetDB, pitchOffsetCents);
 
 					randomLastIndices.Enqueue(clipIndexPair.Value);
 
@@ -323,7 +323,7 @@ namespace DevLocker.Audio.Conductors
 
 			float pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, PitchSequence[pitchIndex]);
 
-			playback.PlayDirectClip(AudioClip, pitch);
+			playback.PlayClip(AudioClip, pitch);
 
 			pitchIndex = ResetOnSequenceEnd
 				? (pitchIndex + 1) % PitchSequence.Length
@@ -424,7 +424,7 @@ namespace DevLocker.Audio.Conductors
 
 					startTime = Time.unscaledTime;
 
-					playback.PlayDirectClipOneShot(clip, Volume);
+					playback.PlayClipOneShot(clip, Volume);
 				}
 
 				yield return null;

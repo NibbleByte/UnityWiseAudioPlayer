@@ -57,7 +57,7 @@ namespace DevLocker.Audio
 			}
 
 			if (Resources.Length > 0 || !string.IsNullOrWhiteSpace(ResourceNameContains)) {
-				foreach (var player in AudioSourcePlayer.ActivePlayersRegister) {
+				foreach (var player in AudioSourcePlayer.ActivePlayers) {
 					if (!player.IsPlaying)
 						continue;
 

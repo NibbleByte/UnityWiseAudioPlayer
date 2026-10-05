@@ -114,10 +114,10 @@ namespace DevLocker.Audio
 			public AudioSourcePlayer Player { get; internal set; }
 			public AudioSource AudioSource { get; internal set; }
 			public AudioPlayerAsset AudioPlayerAsset { get; internal set; }
-			public bool ConductorFinished { get; internal set; }
+			public bool HasConductorFinished { get; internal set; }
 			public readonly float StartTimeUnscaled;
 
-			public bool IsPlaying => AudioSource != null && (!ConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && Repeat.IsInterval));
+			public bool IsPlaying => AudioSource != null && (!HasConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && Repeat.IsInterval));
 			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
 			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
 
@@ -133,7 +133,7 @@ namespace DevLocker.Audio
 			internal float NextPlayTime;						// For LoopWithInterval mode.
 			internal bool LastIsPlayingForLoopWithInterval;		// For LoopWithInterval mode.
 
-			internal bool Cancelled;
+			internal bool WasCancelled;
 
 			public AudioPlayback(AudioSourcePlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatSettings repeat, float startTimeUnscaled)
 			{
@@ -150,7 +150,7 @@ namespace DevLocker.Audio
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
 			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
-			public void PlayDirectClip(AudioClip clip, float volume = 1.0f, float pitch = 1.0f)
+			public void PlayClip(AudioClip clip, float volume = 1.0f, float pitch = 1.0f)
 			{
 				if (clip == null)
 					throw new ArgumentNullException();
@@ -165,7 +165,7 @@ namespace DevLocker.Audio
 			/// <summary>
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> when PlayOneShot() needs to be used.
 			/// </summary>
-			public void PlayDirectClipOneShot(AudioClip clip, float volume = 1.0f)
+			public void PlayClipOneShot(AudioClip clip, float volume = 1.0f)
 			{
 				if (clip == null)
 					throw new ArgumentNullException();
@@ -181,7 +181,7 @@ namespace DevLocker.Audio
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
 			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
-			public void PlayDirectClip(ClipWithVolume clipPair, float pitch = 1.0f, int volumeOffsetDB = 0)
+			public void PlayClip(ClipWithVolume clipPair, float pitch = 1.0f, int volumeOffsetDB = 0)
 			{
 				if (clipPair.Clip == null)
 					throw new ArgumentNullException();
@@ -200,7 +200,7 @@ namespace DevLocker.Audio
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
 			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
-			public void PlayDirectClip(ClipWithVolumePitch clipPair, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
+			public void PlayClip(ClipWithVolumePitch clipPair, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
 			{
 				if (clipPair.Clip == null)
 					throw new ArgumentNullException();
@@ -222,7 +222,7 @@ namespace DevLocker.Audio
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
 			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
-			public void PlayDirectResource(AudioResource resource, float pitch = 1.0f)
+			public void PlayResource(AudioResource resource, float pitch = 1.0f)
 			{
 				if (resource == null)
 					throw new ArgumentNullException();
@@ -237,7 +237,7 @@ namespace DevLocker.Audio
 			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
 			/// This way, the <see cref="Editor.AudioSourcePlayerMonitorWindow"/> will show the correct sound.
 			/// </summary>
-			public void PlayDirectResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
+			public void PlayResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
 			{
 				if (resourcePair.Resource == null)
 					throw new ArgumentNullException();
@@ -312,7 +312,7 @@ namespace DevLocker.Audio
 		/// Gets or sets the used audio reference.
 		/// If <see cref="AudioPlayerAsset"/> is used, it will override some of the player fields like repeat, output mixer, etc.
 		///
-		/// NOTE: Don't use from conductors!!! Use <see cref="AudioPlayback.PlayDirectResource(AudioResource, float)"/> instead.
+		/// NOTE: Don't use from conductors!!! Use AudioPlayback.Play methods instead.
 		/// </summary>
 		public AudioReferenceProperty AudioReference {
 			get => m_AudioReference;
@@ -428,7 +428,7 @@ namespace DevLocker.Audio
 
 		public IReadOnlyList<AudioPlayback> ActivePlaybacks => m_ActivePlaybacks.AsReadOnly();
 
-		public static IReadOnlyList<AudioSourcePlayer> ActivePlayersRegister => m_ActivePlayersRegister.AsReadOnly();
+		public static IReadOnlyList<AudioSourcePlayer> ActivePlayers => m_ActivePlayers.AsReadOnly();
 
 		[SerializeField]
 		[Tooltip("One player can manage many audio sources as it would create a new one every time a new sound is started while the old source is still playing.\n\n" +
@@ -472,7 +472,7 @@ namespace DevLocker.Audio
 		[Tooltip("Volume of the sound")]
 		private float m_Volume = 1f;
 
-		private static readonly List<AudioSourcePlayer> m_ActivePlayersRegister = new List<AudioSourcePlayer>();
+		private static readonly List<AudioSourcePlayer> m_ActivePlayers = new List<AudioSourcePlayer>();
 
 		private List<AudioPlayback> m_ActivePlaybacks = new List<AudioPlayback>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
@@ -489,7 +489,7 @@ namespace DevLocker.Audio
 
 		protected virtual void OnEnable()
 		{
-			m_ActivePlayersRegister.Add(this);
+			m_ActivePlayers.Add(this);
 
 			if (PlayOnEnable && AudioReference.HasValidReference) {
 				Play();
@@ -500,7 +500,7 @@ namespace DevLocker.Audio
 		{
 			// Also called on destroy, which works fine for us.
 
-			m_ActivePlayersRegister.Remove(this);
+			m_ActivePlayers.Remove(this);
 
 			while(m_ActivePlaybacks.Count > 0) {
 				// If we are disabled because we are being destroyed, keep playing the source
@@ -559,7 +559,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Easy way to wait for player to finish playing in your coroutines.
 		/// </summary>
-		public IEnumerator WaitToFinishPlaying()
+		public IEnumerator WaitUntilFinished()
 		{
 			while (IsPlaying)
 				yield return null;
@@ -621,7 +621,7 @@ namespace DevLocker.Audio
 				var conductorCoroutine = StartCoroutine(StartAssetPlayback(audioReference.AudioAsset, delay, playback));
 
 				// We can get the coroutine after running it initially, but it may already have finished.
-				if (!playback.ConductorFinished) {
+				if (!playback.HasConductorFinished) {
 					playback.ConductorCoroutine = conductorCoroutine;
 				}
 
@@ -630,7 +630,7 @@ namespace DevLocker.Audio
 			}
 
 			// If AudioSource is missing playback got released immediately, which means it didn't actually play.
-			if (!playback.Cancelled && playback.AudioSource != null) {
+			if (!playback.WasCancelled && playback.AudioSource != null) {
 				LastPlayTimeUnscaled = Time.unscaledTime;
 				PlaybackStarted?.Invoke(playback);
 			}
@@ -659,7 +659,7 @@ namespace DevLocker.Audio
 				foreach(var playback in m_ActivePlaybacks.ToList()) {
 					if (playback.IsPlaying && playback.StopFadeCoroutine == null) {
 						playback.StopConductorCoroutine();
-						playback.ConductorFinished = true;
+						playback.HasConductorFinished = true;
 
 						// If fading to stop replaces fading to pause.
 						playback.StopPauseFadeCoroutine();
@@ -708,7 +708,7 @@ namespace DevLocker.Audio
 
 				if (playback.IsPlaying && playback.StopFadeCoroutine == null) {
 					playback.StopConductorCoroutine();
-					playback.ConductorFinished = true;
+					playback.HasConductorFinished = true;
 
 					// If fading to stop replaces fading to pause.
 					playback.StopPauseFadeCoroutine();
@@ -738,7 +738,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Instantly stop all active playbacks except the one provided.
 		/// </summary>
-		public virtual void StopAllPlaybacksExcept(AudioPlayback keptPlayback)
+		public virtual void StopAllExcept(AudioPlayback keptPlayback)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
@@ -755,7 +755,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Instantly stop all active playbacks that use the given asset.
 		/// </summary>
-		public virtual void StopAllPlaybacksWithAsset(AudioPlayerAsset asset, AudioPlayback excludePlayback = null)
+		public virtual void StopAllWithAsset(AudioPlayerAsset asset, AudioPlayback excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
@@ -867,7 +867,7 @@ namespace DevLocker.Audio
 					
 					if (playback.IsPlaying) {
 						playback.StopConductorCoroutine();
-						playback.ConductorFinished = true;
+						playback.HasConductorFinished = true;
 
 						// If fading to stop replaces fading to pause.
 						playback.StopPauseFadeCoroutine();
@@ -914,7 +914,7 @@ namespace DevLocker.Audio
 			}
 		}
 
-		public void DestroyPlayerWhenFinishedPlaying(bool destroyGameObject)
+		public void DestroyWhenFinished(bool destroyGameObject)
 		{
 			IEnumerator DestroyWhenFinishedPlaying()
 			{
@@ -1070,7 +1070,7 @@ namespace DevLocker.Audio
 
 			var playback = player.PlayAudioReference(audioReference);
 
-			player.DestroyPlayerWhenFinishedPlaying(destroyGameObject: true);
+			player.DestroyWhenFinished(destroyGameObject: true);
 
 			return playback;
 		}
@@ -1109,7 +1109,7 @@ namespace DevLocker.Audio
 			yield return asset.Play(playback, ConductorsFilterContext);
 
 			// Signal that conductor finished playing (which doesn't mean the audio finished).
-			playback.ConductorFinished = true;
+			playback.HasConductorFinished = true;
 			if (!playback.IsPlaying) {
 				ReleaseAudioPlayback(playback);
 			}
@@ -1137,7 +1137,7 @@ namespace DevLocker.Audio
 				playback.AudioSource.PlayDelayed(delay);
 			}
 
-			playback.ConductorFinished = true; // No conductor for normal audio resource.
+			playback.HasConductorFinished = true; // No conductor for normal audio resource.
 		}
 
 		protected virtual void Update()
