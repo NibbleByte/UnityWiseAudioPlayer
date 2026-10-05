@@ -4,8 +4,8 @@ using UnityEngine;
 namespace DevLocker.Audio
 {
 	/// <summary>
-	/// Component that holds a global pool of <see cref="AudioSource"/> for the <see cref="AudioSourcePlayer"/> to use.
-	/// It is automatically created on first use of <see cref="AudioSourcePlayer"/> and persists across scene loads.
+	/// Component that holds a global pool of <see cref="AudioSource"/> for the <see cref="AudioPlayer"/> to use.
+	/// It is automatically created on first use of <see cref="AudioPlayer"/> and persists across scene loads.
 	///
 	/// Audio sources that are returned but still playing and NOT looping will be kept "alive" until they finish playing, then returned to the pool.
 	/// </summary>

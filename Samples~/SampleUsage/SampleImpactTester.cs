@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SampleImpactTester : MonoBehaviour
 {
-	public AudioSourcePlayer AudioPlayer;
+	public AudioPlayer AudioPlayer;
 
 	private void Awake()
 	{

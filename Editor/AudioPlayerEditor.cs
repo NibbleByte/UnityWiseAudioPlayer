@@ -4,15 +4,15 @@ using System.Collections.Generic;
 
 namespace DevLocker.Audio.Editor
 {
-	[CustomPropertyDrawer(typeof(AudioSourcePlayer.RepeatSettings))]
+	[CustomPropertyDrawer(typeof(AudioPlayer.RepeatSettings))]
 	public class RepeatOptionsDrawer : PropertyDrawer
 	{
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			var modeProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.Mode));
-			var modeType = (AudioSourcePlayer.RepeatMode)modeProp.intValue;
+			var modeProp = property.FindPropertyRelative(nameof(AudioPlayer.RepeatSettings.Mode));
+			var modeType = (AudioPlayer.RepeatMode)modeProp.intValue;
 
-			if (modeType != AudioSourcePlayer.RepeatMode.LoopWithInterval) {
+			if (modeType != AudioPlayer.RepeatMode.LoopWithInterval) {
 				return EditorGUIUtility.singleLineHeight;
 			}
 
@@ -25,14 +25,14 @@ namespace DevLocker.Audio.Editor
 
 			position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-			var modeProp = property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.Mode));
-			var modeType = (AudioSourcePlayer.RepeatMode)modeProp.intValue;
+			var modeProp = property.FindPropertyRelative(nameof(AudioPlayer.RepeatSettings.Mode));
+			var modeType = (AudioPlayer.RepeatMode)modeProp.intValue;
 
 			var patternRect = position;
 			patternRect.height = EditorGUIUtility.singleLineHeight;
 			EditorGUI.PropertyField(patternRect, modeProp, GUIContent.none);
 
-			if (modeType == AudioSourcePlayer.RepeatMode.LoopWithInterval) {
+			if (modeType == AudioPlayer.RepeatMode.LoopWithInterval) {
 				var intervalLineRect = position;
 				intervalLineRect.y = position.y + position.height - EditorGUIUtility.singleLineHeight;
 				intervalLineRect.height = EditorGUIUtility.singleLineHeight;
@@ -46,8 +46,8 @@ namespace DevLocker.Audio.Editor
 				maxValue.x += intervalLineRect.width / 2;
 				float oldLabelWidth = EditorGUIUtility.labelWidth;
 				EditorGUIUtility.labelWidth = 30f;
-				EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.MinSeconds)), new GUIContent("Min"));
-				EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioSourcePlayer.RepeatSettings.MaxSeconds)), new GUIContent("Max"));
+				EditorGUI.PropertyField(minValue, property.FindPropertyRelative(nameof(AudioPlayer.RepeatSettings.MinSeconds)), new GUIContent("Min"));
+				EditorGUI.PropertyField(maxValue, property.FindPropertyRelative(nameof(AudioPlayer.RepeatSettings.MaxSeconds)), new GUIContent("Max"));
 				EditorGUIUtility.labelWidth = oldLabelWidth;
 			}
 
@@ -55,7 +55,7 @@ namespace DevLocker.Audio.Editor
 		}
 	}
 
-	[CustomPropertyDrawer(typeof(AudioSourcePlayer.AudioReferenceProperty))]
+	[CustomPropertyDrawer(typeof(AudioPlayer.AudioReferenceProperty))]
 	public class AudioReferencePropertyDrawer : PropertyDrawer
 	{
 		private bool m_UseAudioAsset = true;
@@ -124,9 +124,9 @@ namespace DevLocker.Audio.Editor
 		}
 	}
 
-	[CustomEditor(typeof(AudioSourcePlayer), true)]
+	[CustomEditor(typeof(AudioPlayer), true)]
 	[CanEditMultipleObjects]
-	public class AudioSourcePlayerEditor : UnityEditor.Editor
+	public class AudioPlayerEditor : UnityEditor.Editor
 	{
 		private Vector2 m_ContextScrollPos;
 		private bool m_ContextFolded = false;
@@ -147,8 +147,8 @@ namespace DevLocker.Audio.Editor
 			EditorGUI.BeginChangeCheck();
 
 			var audioAssetProp = serializedObject
-				.FindProperty("m_" + nameof(AudioSourcePlayer.AudioReference))
-				.FindPropertyRelative("m_" + nameof(AudioSourcePlayer.AudioReferenceProperty.AudioAsset))
+				.FindProperty("m_" + nameof(AudioPlayer.AudioReference))
+				.FindPropertyRelative("m_" + nameof(AudioPlayer.AudioReferenceProperty.AudioAsset))
 				;
 
 			// Will draw any child properties without [HideInInspector] attribute.
@@ -156,9 +156,9 @@ namespace DevLocker.Audio.Editor
 				DrawPropertiesExcluding(serializedObject, "m_Script");
 			} else {
 				DrawPropertiesExcluding(serializedObject, "m_Script",
-					"m_" + nameof(AudioSourcePlayer.Repeat),
-					"m_" + nameof(AudioSourcePlayer.OutputMixer),
-					"m_" + nameof(AudioSourcePlayer.Template)
+					"m_" + nameof(AudioPlayer.Repeat),
+					"m_" + nameof(AudioPlayer.OutputMixer),
+					"m_" + nameof(AudioPlayer.Template)
 					);
 			}
 
@@ -168,7 +168,7 @@ namespace DevLocker.Audio.Editor
 
 			EditorGUILayout.BeginHorizontal();
 
-			var player = serializedObject.targetObject as AudioSourcePlayer;
+			var player = serializedObject.targetObject as AudioPlayer;
 
 			Color prevColor = GUI.color;
 			string playingHint = "Not Playing";
@@ -188,7 +188,7 @@ namespace DevLocker.Audio.Editor
 			GUI.color = prevColor;
 
 			if (GUILayout.Button("Open Audio Monitor", GUILayout.ExpandWidth(false))) {
-				AudioSourcePlayerMonitorWindow.ShowMonitor();
+				AudioPlayerMonitorWindow.ShowMonitor();
 			}
 
 			EditorGUILayout.EndHorizontal();

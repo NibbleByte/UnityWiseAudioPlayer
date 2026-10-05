@@ -10,16 +10,16 @@ namespace DevLocker.Audio
 	public class UIAudioTemplate : MonoBehaviour
 	{
 		[Tooltip("Submit is called on pressing <Enter> or gamepad <A>, but NOT on pointer clicks.")]
-		public AudioSourcePlayer.AudioReferenceProperty SubmitAudio;
+		public AudioPlayer.AudioReferenceProperty SubmitAudio;
 		[Tooltip("OnClick is called only for pointer clicks, NOT on pressing <Enter> or gamepad <A>.")]
-		public AudioSourcePlayer.AudioReferenceProperty PointerClickAudio;
+		public AudioPlayer.AudioReferenceProperty PointerClickAudio;
 
-		public AudioSourcePlayer.AudioReferenceProperty PointerDownAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerUpAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerEnterAudio;
-		public AudioSourcePlayer.AudioReferenceProperty PointerExitAudio;
+		public AudioPlayer.AudioReferenceProperty PointerDownAudio;
+		public AudioPlayer.AudioReferenceProperty PointerUpAudio;
+		public AudioPlayer.AudioReferenceProperty PointerEnterAudio;
+		public AudioPlayer.AudioReferenceProperty PointerExitAudio;
 
-		public AudioSourcePlayer.AudioReferenceProperty SelectAudio;
-		public AudioSourcePlayer.AudioReferenceProperty DeselectAudio;
+		public AudioPlayer.AudioReferenceProperty SelectAudio;
+		public AudioPlayer.AudioReferenceProperty DeselectAudio;
 	}
 }
