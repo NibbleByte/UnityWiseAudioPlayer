@@ -35,7 +35,7 @@ namespace DevLocker.Audio.Editor
 
 			public bool Mute;
 			public bool PlayOnEnable;
-			public AudioSourcePlayer.RepeatPatternType RepeatPattern;
+			public AudioSourcePlayer.RepeatMode RepeatMode;
 			public float Volume;
 			public float Pitch;
 			public float SpatialBlend;
@@ -93,15 +93,15 @@ namespace DevLocker.Audio.Editor
 			}
 		}
 
-		private void OnPlayStarted(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Play, playback);
+		private void OnPlayStarted(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Play, playback);
 
-		private void OnPlayStopped(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Stop, playback);
+		private void OnPlayStopped(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Stop, playback);
 
-		private void OnPlayPaused(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.Pause, playback);
+		private void OnPlayPaused(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.Pause, playback);
 
-		private void OnPlayUnpaused(AudioSourcePlayer.PlaybackState playback) => AddAction(ActionType.UnPause, playback);
+		private void OnPlayUnpaused(AudioSourcePlayer.AudioPlayback playback) => AddAction(ActionType.UnPause, playback);
 
-		private void AddAction(ActionType actionType, AudioSourcePlayer.PlaybackState playback)
+		private void AddAction(ActionType actionType, AudioSourcePlayer.AudioPlayback playback)
 		{
 			if (!m_ListenForEvents)
 				return;
@@ -123,7 +123,7 @@ namespace DevLocker.Audio.Editor
 				Mute = playback.Player.Mute,
 				PlayOnEnable = playback.Player.PlayOnEnable,
 
-				RepeatPattern = playback.RepeatPattern.Pattern,
+				RepeatMode = playback.Repeat.Mode,
 				Volume = playback.AudioSource.volume,	// Conductors may change audio source volume directly.
 				Pitch = playback.AudioSource.pitch,
 				SpatialBlend = playback.AudioSource.spatialBlend,
@@ -315,7 +315,7 @@ namespace DevLocker.Audio.Editor
 					GUILayout.Space(toggleMargin);
 					EditorGUILayout.Toggle(action.PlayOnEnable, GUILayout.Width(boolColumnWidth - toggleMargin));
 
-					GUILayout.Label(action.RepeatPattern.ToString().Replace("Repeat", ""), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
+					GUILayout.Label(action.RepeatMode.ToString().Replace(nameof(AudioSourcePlayer.RepeatMode.LoopWithInterval), "Interval"), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
 
 					EditorGUILayout.FloatField(action.Volume, GUILayout.Width(floatColumnWidth));
 					EditorGUILayout.FloatField(action.Pitch, GUILayout.Width(floatColumnWidth));

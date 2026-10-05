@@ -639,8 +639,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -1342,8 +1342,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -1553,8 +1553,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -2495,8 +2495,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 1
+  m_Repeat:
+    Mode: 1
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -2687,8 +2687,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3020,8 +3020,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3175,7 +3175,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioSourceInterrupter
   Players:
   - {fileID: 603675968}
-  AudioSources: []
   Resources: []
   ResourceNameContains: 
   StopTargetsOnEnable: 0
@@ -3200,8 +3199,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3717,8 +3716,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -3857,8 +3856,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 1
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -4186,8 +4185,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -6005,8 +6004,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
@@ -6794,8 +6793,8 @@ MonoBehaviour:
   m_Template: {fileID: 0}
   m_Mute: 0
   m_PlayOnEnable: 0
-  m_RepeatPattern:
-    Pattern: 0
+  m_Repeat:
+    Mode: 0
     MinSeconds: 0
     MaxSeconds: 0
   InterruptionFadeDuration: 0.2
