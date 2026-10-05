@@ -21,10 +21,10 @@ namespace DevLocker.Audio
 		public string ResourceNameContains = "";
 
 		[Header("When?")]
-		[Tooltip("Stop specified above targets on enabling this component")]
+		[Tooltip("Stop the targets above when this component is enabled.")]
 		public bool StopTargetsOnEnable = true;
 
-		[Tooltip("Stop specified above targets when specified player starts playing")]
+		[Tooltip("Stop the targets above whenever this player starts a sound.")]
 		public AudioSourcePlayer StopTargetsOnWhenPlaying;
 
 		void OnEnable()

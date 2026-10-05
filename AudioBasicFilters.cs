@@ -11,7 +11,7 @@ namespace DevLocker.Audio.Conductors
 	[Serializable]
 	public class CooldownFilter : AudioPlayerAsset.AudioConductorFilter
 	{
-		[Tooltip("Minimum time interval (in seconds) from last play that we can play again.")]
+		[Tooltip("Minimum seconds since this player last started any sound.")]
 		public float CooldownSeconds = 0.1f;
 
 		public override bool IsAllowed(object context, AudioSourcePlayer player, AudioPlayerAsset asset)
@@ -148,7 +148,7 @@ namespace DevLocker.Audio.Conductors
 		public string KeyName;
 		public StringCompareType Comparison;
 		public bool CaseSensitive = false;
-		[Tooltip("Check if the boolean context value equals this one")]
+		[Tooltip("Compare the context string against this value.")]
 		public string Value;
 
 		[Tooltip("Allow only if result is false, i.e. negative comparison.")]

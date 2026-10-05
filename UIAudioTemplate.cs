@@ -11,7 +11,7 @@ namespace DevLocker.Audio
 	{
 		[Tooltip("Submit is called on pressing <Enter> or gamepad <A>, but NOT on pointer clicks.")]
 		public AudioSourcePlayer.AudioReferenceProperty SubmitAudio;
-		[Tooltip("OnClick is called on only for pointer clicks, NOT on pressing <Enter> or gamepad <A>.")]
+		[Tooltip("OnClick is called only for pointer clicks, NOT on pressing <Enter> or gamepad <A>.")]
 		public AudioSourcePlayer.AudioReferenceProperty PointerClickAudio;
 
 		public AudioSourcePlayer.AudioReferenceProperty PointerDownAudio;

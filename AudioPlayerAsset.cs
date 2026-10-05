@@ -67,27 +67,27 @@ namespace DevLocker.Audio
 			[SerializeReference]
 			public AudioConductor Conductor;
 
-			[Tooltip("All filters should be satisfied in order for this event to execute.")]
+			[Tooltip("All filters must pass for this conductor to be used. The first conductor whose filters all pass is played.")]
 			[SerializeReference]
 			public AudioConductorFilter[] Filters;
 		}
 
-		[Tooltip("Scope of the conductors' state (e.g. shuffle order, last clip played). Per Asset: shared by all players. Per Player: each player has its own.")]
+		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Asset: shared by all players.\nPer Player: each player has its own.\n\nFor example, should screams shuffle per character or globally?")]
 		public ConductorsStateScope StateScope;
 
-		[Tooltip("How sound should be repeated. Loop with interval allows you to specify seconds of silence every time after audio finished playing.\n\nSome conductors may ignore this property and loop on their own.\nThis will override the AudioSourcePlayer setting.")]
+		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioSourcePlayer setting.")]
 		public AudioSourcePlayer.RepeatSettings Repeat;
 
-		[Tooltip("Should it stop (interrupt) the currently playing sounds?")]
+		[Tooltip("When this asset starts, what happens to the sounds already playing on the same player: keep them, stop them all, or stop only the ones from this asset. Stops are instant.")]
 		public InterruptSoundsMode InterruptMode;
 
-		[Tooltip("Delay before playing the audio asset. Will not be included in the loop.")]
+		[Tooltip("Seconds to wait before the asset starts. Not repeated when looping.")]
 		public float Delay = 0f;
 
-		[Tooltip("Mixer to be used when playing asset. Will override the one specified on the AudioSourcePlayer. When empty it will try to use the Template's output mixer.")]
+		[Tooltip("Mixer group to output to. Overrides the AudioSourcePlayer's mixer. If empty, uses the template's mixer.")]
 		public AudioMixerGroup OutputMixer;
 
-		[Tooltip("Prefab to be used as template when initializing the AudioSource properties")]
+		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.")]
 		public AudioSource Template;
 
 		public FilteredConductor[] Conductors;

@@ -37,9 +37,9 @@ namespace DevLocker.Audio
 		{
 			public RepeatMode Mode;
 
-			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
 			public float MinSeconds;
-			[Tooltip("How much seconds to wait AFTER audio finished playing so it can start again. Will select random value within range.")]
+			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
 			public float MaxSeconds;
 
 			public float RollInterval() => Mode == RepeatMode.LoopWithInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
@@ -431,12 +431,12 @@ namespace DevLocker.Audio
 		public static IReadOnlyList<AudioSourcePlayer> ActivePlayers => m_ActivePlayers.AsReadOnly();
 
 		[SerializeField]
-		[Tooltip("One player can manage many audio sources as it would create a new one every time a new sound is started while the old source is still playing.\n\n" +
-			"Where should AudioSource components be created?\n" +
-			"- " + nameof(AudioSourcesPoolMode.PlayerObjectPool) + " - this object\n" +
-			"- " + nameof(AudioSourcesPoolMode.PlayerChildPool) + " - as child of this object\n" +
-			"- " + nameof(AudioSourcesPoolMode.GlobalPool) + " - global pool away from this object\n\n" +
-			"When source is attached to this or child object the playing sound would stop immediately on destroying the object. Use global pool to avoid this.")]
+		[Tooltip("Each sound that overlaps an already playing one gets its own AudioSource. Sources are reused once they finish.\n\n" +
+			"Where to create these AudioSources:\n" +
+			"- " + nameof(AudioSourcesPoolMode.PlayerObjectPool) + ": on this object\n" +
+			"- " + nameof(AudioSourcesPoolMode.PlayerChildPool) + ": on a child object\n" +
+			"- " + nameof(AudioSourcesPoolMode.GlobalPool) + ": on a shared pool object\n\n" +
+			"Sounds on this object or a child stop as soon as it's destroyed. Use the global pool to let them finish (looping sounds are still stopped).")]
 		private AudioSourcesPoolMode m_SourcesPoolMode;
 
 		[SerializeField]
@@ -445,15 +445,15 @@ namespace DevLocker.Audio
 
 
 		[SerializeField]
-		[Tooltip("Audio mixer to use.\n\nWill be overriden by the audio asset's mixer.\nIf left empty, it will copy the one of the template")]
+		[Tooltip("Mixer group to output to.\n\nOverridden by the audio asset's mixer. If empty, uses the template's mixer.")]
 		private AudioMixerGroup m_OutputMixer;
 
 		[SerializeField]
-		[Tooltip("Prefab (or scene object) to be used as template when initializing the AudioSource properties.\n\nWill be overriden by the audio asset's template.")]
+		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to each new sound.\n\nOverridden by the audio asset's template.")]
 		private AudioSource m_Template;
 
 		[SerializeField]
-		[Tooltip("Mute the sound")]
+		[Tooltip("Mute all sounds from this player.")]
 		private bool m_Mute = false;
 
 		[SerializeField]
@@ -461,15 +461,15 @@ namespace DevLocker.Audio
 		private bool m_PlayOnEnable = true;
 
 		[SerializeField]
-		[Tooltip("How sound should be repeated. Loop with interval allows you to specify seconds of silence every time after audio finished playing.\n\nWill be overriden when audio asset is used.")]
+		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nOverridden when an audio asset is played.")]
 		private RepeatSettings m_Repeat;
 
-		[Tooltip("Fade duration when sound is interrupted (Stop, Pause, Unpause)")]
+		[Tooltip("Fade duration in seconds when sounds are stopped, paused or unpaused. 0 means instant.")]
 		public float InterruptionFadeDuration = 0.2f;
 
 		[Range(0f, 1f)]
 		[SerializeField]
-		[Tooltip("Volume of the sound")]
+		[Tooltip("Volume for newly started sounds. Doesn't affect sounds already playing.")]
 		private float m_Volume = 1f;
 
 		private static readonly List<AudioSourcePlayer> m_ActivePlayers = new List<AudioSourcePlayer>();

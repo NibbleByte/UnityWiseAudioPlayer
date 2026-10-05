@@ -272,7 +272,7 @@ namespace DevLocker.Audio.Conductors
 	{
 		public ClipWithVolume AudioClip;
 
-		[Tooltip("Should it start all over the pitch sequence on reacing the end, or should it use the last pitch?")]
+		[Tooltip("On reaching the end of the sequence: restart from the first pitch (on), or keep using the last pitch (off).")]
 		public bool ResetOnSequenceEnd = false;
 
 		[Tooltip("Reset pitch index after this many seconds idle. Set to 0 to never reset so you can do it manually.")]
@@ -379,7 +379,7 @@ namespace DevLocker.Audio.Conductors
 		[Range(0f, 1f)]
 		public float Volume = 1.0f;
 
-		[Tooltip("How much time should the sequence be looped? Set to -1 to loop endlessly.")]
+		[Tooltip("How long to keep playing the sequence, in seconds. -1 plays forever.")]
 		public float Duration = -1f;
 		[Tooltip("How much time should the clips overlap each other in seconds. Set to 0 for no overlap.")]
 		public float Overlap = 0.1f;
