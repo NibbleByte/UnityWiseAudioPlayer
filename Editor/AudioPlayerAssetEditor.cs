@@ -3,16 +3,6 @@ using UnityEngine;
 
 namespace DevLocker.Audio.Utils.Editor
 {
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioConductorFilter))]
-	public class AudioConductorFilterDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
-	{
-	}
-
-	[CustomPropertyDrawer(typeof(AudioPlayerAsset.AudioConductor))]
-	public class AudioConductorDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
-	{
-	}
-
 	/// <summary>
 	/// Draws the <see cref="AudioPlayerAsset.Settings"/> members inline, as if they were members of the asset itself (no foldout).
 	/// </summary>
@@ -109,7 +99,7 @@ namespace DevLocker.Audio.Utils.Editor
 					if (filteredConductorsProperty.arraySize == 0)
 						return;
 
-					var conductorProperty = filteredConductorsProperty.GetArrayElementAtIndex(0).FindPropertyRelative(nameof(AudioPlayerAsset.FilteredConductor.Conductor));
+					var conductorProperty = filteredConductorsProperty.GetArrayElementAtIndex(0).FindPropertyRelative(nameof(FilteredConductor.Conductor));
 
 					// Try to guess the conductor's name. It depends on the implementation.
 					SerializedProperty audioClipProperty =

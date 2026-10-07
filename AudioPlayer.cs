@@ -24,48 +24,6 @@ namespace DevLocker.Audio
 			GlobalPool,
 		}
 
-		public enum RepeatMode
-		{
-			Once = 0,
-			Loop = 1,
-
-			LoopWithInterval = 4,
-		}
-
-		[Serializable]
-		public struct RepeatSettings
-		{
-			public RepeatMode Mode;
-
-			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
-			public float MinSeconds;
-			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
-			public float MaxSeconds;
-
-			public float RollInterval() => Mode == RepeatMode.LoopWithInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
-
-			public bool IsRepeating => Mode != RepeatMode.Once;
-
-			public bool IsOnce => Mode == RepeatMode.Once;
-			public bool IsLoop => Mode == RepeatMode.Loop;
-			public bool IsInterval => Mode == RepeatMode.LoopWithInterval;
-
-			public void OnValidate(UnityEngine.Object context)
-			{
-#if UNITY_EDITOR
-				if (MinSeconds < 0f) {
-					MinSeconds = 0f;
-					UnityEditor.EditorUtility.SetDirty(context);
-				}
-
-				if (MaxSeconds < MinSeconds) {
-					MaxSeconds = MinSeconds;
-					UnityEditor.EditorUtility.SetDirty(context);
-				}
-#endif
-			}
-		}
-
 		/// <summary>
 		/// Holds <see cref="AudioResource"/> and <see cref="AudioPlayerAsset"/> together so user can select any type of audioReference.
 		/// Only one member should have a valid reference at all times.
@@ -165,7 +123,7 @@ namespace DevLocker.Audio
 			get => Repeat.IsRepeating;
 			set {
 				var repeatSettings = Repeat;
-				repeatSettings.Mode = value ? RepeatMode.Loop : RepeatMode.Once;
+				repeatSettings.Mode = value ? AudioPlaybackSettings.RepeatMode.Loop : AudioPlaybackSettings.RepeatMode.Once;
 				Repeat = repeatSettings;
 			}
 		}
@@ -173,7 +131,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Repeat settings to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
 		/// </summary>
-		public RepeatSettings Repeat { get => m_Repeat; set => m_Repeat = value; }
+		public AudioPlaybackSettings.RepeatSettings Repeat { get => m_Repeat; set => m_Repeat = value; }
 
 		/// <summary>
 		/// Volume used when playing new sounds - will not affect already playing sounds.
@@ -181,7 +139,7 @@ namespace DevLocker.Audio
 		public float Volume { get => m_Volume; set => m_Volume = value; }
 		
 		/// <summary>
-		/// Object used by <see cref="AudioPlayerAsset.AudioConductorFilter"/> as context.
+		/// Object used by <see cref="AudioConductorFilter"/> as context.
 		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
 		/// </summary>
 		public object ConductorsFilterContext;
@@ -198,7 +156,7 @@ namespace DevLocker.Audio
 		/// Get stored conductor state value (per player).
 		/// Conductors should use <see cref="AudioPlayback.GetConductorStateValue{T}"/> instead.
 		/// </summary>
-		public T GetConductorStateValue<T>(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, T defaultValue)
+		public T GetConductorStateValue<T>(AudioConductor conductor, UnityEngine.Object asset, string keyName, T defaultValue)
 		{
 			if (m_ConductorsStateStorage.TryGetValue(new AudioPlayback.ConductorStateKey(conductor, asset, keyName), out object objValue))
 				return (T) objValue;
@@ -210,7 +168,7 @@ namespace DevLocker.Audio
 		/// Set conductor state value (per player).
 		/// Conductors should use <see cref="AudioPlayback.SetConductorStateValue"/> instead.
 		/// </summary>
-		public void SetConductorStateValue(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
+		public void SetConductorStateValue(AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
 		{
 			m_ConductorsStateStorage[new AudioPlayback.ConductorStateKey(conductor, asset, keyName)] = value;
 		}
@@ -289,7 +247,7 @@ namespace DevLocker.Audio
 
 		[SerializeField]
 		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nOverridden when an audio asset is played.")]
-		private RepeatSettings m_Repeat;
+		private AudioPlaybackSettings.RepeatSettings m_Repeat;
 
 		[Tooltip("Fade duration in seconds when sounds are stopped, paused or unpaused. 0 means instant.")]
 		public float InterruptionFadeDuration = 0.2f;
@@ -436,7 +394,7 @@ namespace DevLocker.Audio
 		/// Useful if you keep conductors in your own assets and do the filtering yourself.
 		/// Uses only the provided <paramref name="settings"/> - player's template, output mixer and repeat settings are NOT used.
 		/// </summary>
-		public AudioPlayback PlayConductor(AudioPlaybackSettings settings, AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object conductorAsset)
+		public AudioPlayback PlayConductor(AudioPlaybackSettings settings, AudioConductor conductor, UnityEngine.Object conductorAsset)
 		{
 			if (conductor == null)
 				throw new ArgumentNullException(nameof(conductor));
@@ -480,7 +438,7 @@ namespace DevLocker.Audio
 			return playback;
 		}
 
-		protected virtual AudioPlayback PlayConductorImpl(AudioPlaybackSettings settings, AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object conductorAsset)
+		protected virtual AudioPlayback PlayConductorImpl(AudioPlaybackSettings settings, AudioConductor conductor, UnityEngine.Object conductorAsset)
 		{
 			if (IsPaused) {
 				UnPause();
@@ -492,10 +450,10 @@ namespace DevLocker.Audio
 			if (playback == null)
 				return null;
 
-			AudioPlayerAsset.FilteredConductor[] conductors = new []{
-				new AudioPlayerAsset.FilteredConductor(){
+			FilteredConductor[] conductors = new []{
+				new FilteredConductor(){
 					Conductor = conductor,
-					Filters = Array.Empty<AudioPlayerAsset.AudioConductorFilter>(),
+					Filters = Array.Empty<AudioConductorFilter>(),
 				}
 			};
 			
@@ -957,7 +915,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Plays an asset (selecting a conductor by its filters) or a standalone conductor with the given settings.
 		/// </summary>
-		private IEnumerator StartConductorsPlayback(AudioPlaybackSettings settings, AudioPlayerAsset.FilteredConductor[] conductors, UnityEngine.Object conductorAsset, AudioPlayback playback)
+		private IEnumerator StartConductorsPlayback(AudioPlaybackSettings settings, FilteredConductor[] conductors, UnityEngine.Object conductorAsset, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = true;
 			playback.ConductorAsset = conductorAsset;
@@ -980,13 +938,13 @@ namespace DevLocker.Audio
 			AudioSource source = playback.AudioSource;
 
 			switch (settings.InterruptMode) {
-				case AudioPlayerAsset.InterruptSoundsMode.DontInterrupt:
+				case AudioPlaybackSettings.InterruptSoundsMode.DontInterrupt:
 					// Do nothing.
 					break;
-				case AudioPlayerAsset.InterruptSoundsMode.InterruptAll:
+				case AudioPlaybackSettings.InterruptSoundsMode.InterruptAll:
 					StopAllExcept(playback);
 					break;
-				case AudioPlayerAsset.InterruptSoundsMode.InterruptSameAsset:
+				case AudioPlaybackSettings.InterruptSoundsMode.InterruptSameAsset:
 					if (conductorAsset != null) {
 						StopAllWithConductorAsset(conductorAsset, playback);
 					} else {
@@ -1085,7 +1043,7 @@ namespace DevLocker.Audio
 			playback.AudioSource.outputAudioMixerGroup = m_OutputMixer ? m_OutputMixer : (m_Template ? m_Template.outputAudioMixerGroup : null);
 			playback.AudioSource.loop = m_Repeat.IsLoop;
 			playback.Repeat = m_Repeat;
-			playback.ConductorStateScope = AudioPlayerAsset.ConductorsStateScope.PerPlayer;
+			playback.ConductorStateScope = AudioPlaybackSettings.ConductorsStateScope.PerPlayer;
 
 			playback.Template = m_Template;
 			if (playback.Template) {

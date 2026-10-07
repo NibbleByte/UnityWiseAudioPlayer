@@ -9,7 +9,7 @@ using UnityEngine.Audio;
 namespace DevLocker.Audio.Conductors
 {
 	[Serializable]
-	public class PlayAudioConductor : AudioPlayerAsset.AudioConductor
+	public class PlayAudioConductor : AudioConductor
 	{
 		public ClipWithVolumePitch AudioClip;
 
@@ -27,7 +27,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class PlayCollectionAudioConductor : AudioPlayerAsset.AudioConductor
+	public class PlayCollectionAudioConductor : AudioConductor
 	{
 		public enum PlaybackMode
 		{
@@ -237,7 +237,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class IntroThenLoopConductor : AudioPlayerAsset.AudioConductor
+	public class IntroThenLoopConductor : AudioConductor
 	{
 		public AudioClip Intro;
 		public AudioResource Looped;
@@ -266,7 +266,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class PlayPitchSequenceConductor : AudioPlayerAsset.AudioConductor
+	public class PlayPitchSequenceConductor : AudioConductor
 	{
 		public ClipWithVolume AudioClip;
 
@@ -353,7 +353,7 @@ namespace DevLocker.Audio.Conductors
 	/// Helps create continues loop that doesn't feel like one.
 	/// </summary>
 	[Serializable]
-	public class LoopSequenceOverlappingConductor : AudioPlayerAsset.AudioConductor
+	public class LoopSequenceOverlappingConductor : AudioConductor
 	{
 		[Serializable]
 		public struct IntroSettings

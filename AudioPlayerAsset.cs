@@ -21,62 +21,6 @@ namespace DevLocker.Audio
 		public const string CentPitchHint = "Pitch sequence in cents. One semitone has 100 cents. One octave has 12 semitones.\nPrefer using semitone pitches, e.g. 100, 200, 400, etc.\n0 means no pitch change.";
 
 
-		/// <summary>
-		/// Responsible for playing the desired audio.
-		/// Inherit to have custom behaviour.
-		///
-		/// Can be played via <see cref="AudioPlayerAsset"/> or standalone via <see cref="AudioPlayer.PlayConductor"/>.
-		/// Use <see cref="AudioPlayback.GetConductorStateValue{T}"/> and
-		/// <see cref="AudioPlayback.SetConductorStateValue"/> to persist state.
-		/// </summary>
-		[Serializable]
-		public abstract class AudioConductor
-		{
-			public abstract IEnumerator Play(AudioPlayback playback);
-
-			/// <summary>
-			/// Context is the object owning this conductor.
-			/// If you keep conductors in your own assets, call this from their OnValidate().
-			/// </summary>
-			public virtual void OnValidate(UnityEngine.Object context) { }
-		}
-
-		/// <summary>
-		/// Used as filters when choosing which conductor to play.
-		/// </summary>
-		[Serializable]
-		public abstract class AudioConductorFilter
-		{
-			public abstract bool IsAllowed(object context, AudioPlayback playback);
-
-			public virtual void OnValidate(UnityEngine.Object context) { }
-		}
-
-		public enum ConductorsStateScope
-		{
-			PerAsset,
-			PerPlayer,
-		}
-
-		public enum InterruptSoundsMode
-		{
-			DontInterrupt = 0,
-			InterruptAll = 1,
-			InterruptSameAsset = 4,
-		}
-
-		[Serializable]
-		public struct FilteredConductor
-		{
-			[Tooltip("Responsible for playing the desired audio.")]
-			[SerializeReference]
-			public AudioConductor Conductor;
-
-			[Tooltip("All filters must pass for this conductor to be used. The first conductor whose filters all pass is played.")]
-			[SerializeReference]
-			public AudioConductorFilter[] Filters;
-		}
-
 		[Tooltip("Settings used when playing this asset.")]
 		public AudioPlaybackSettings Settings;
 

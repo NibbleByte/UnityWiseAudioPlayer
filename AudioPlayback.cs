@@ -14,14 +14,69 @@ namespace DevLocker.Audio
 	[Serializable]
 	public struct AudioPlaybackSettings
 	{
+		public enum ConductorsStateScope
+		{
+			PerAsset,
+			PerPlayer,
+		}
+
+		public enum InterruptSoundsMode
+		{
+			DontInterrupt = 0,
+			InterruptAll = 1,
+			InterruptSameAsset = 4,
+		}
+
+		public enum RepeatMode
+		{
+			Once = 0,
+			Loop = 1,
+
+			LoopWithInterval = 4,
+		}
+
+		[Serializable]
+		public struct RepeatSettings
+		{
+			public RepeatMode Mode;
+
+			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
+			public float MinSeconds;
+			[Tooltip("Seconds of silence after the sound finishes before it plays again. A random value between Min and Max is picked each time.")]
+			public float MaxSeconds;
+
+			public float RollInterval() => Mode == RepeatMode.LoopWithInterval ? UnityEngine.Random.Range(MinSeconds, MaxSeconds) : 0f;
+
+			public bool IsRepeating => Mode != RepeatMode.Once;
+
+			public bool IsOnce => Mode == RepeatMode.Once;
+			public bool IsLoop => Mode == RepeatMode.Loop;
+			public bool IsInterval => Mode == RepeatMode.LoopWithInterval;
+
+			public void OnValidate(UnityEngine.Object context)
+			{
+#if UNITY_EDITOR
+				if (MinSeconds < 0f) {
+					MinSeconds = 0f;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+
+				if (MaxSeconds < MinSeconds) {
+					MaxSeconds = MinSeconds;
+					UnityEditor.EditorUtility.SetDirty(context);
+				}
+#endif
+			}
+		}
+
 		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Asset: shared by all players.\nPer Player: each player has its own.\n\nFor example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence?")]
-		public AudioPlayerAsset.ConductorsStateScope StateScope;
+		public ConductorsStateScope StateScope;
 
 		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioPlayer setting.")]
-		public AudioPlayer.RepeatSettings Repeat;
+		public RepeatSettings Repeat;
 
 		[Tooltip("When this asset starts, what happens to the sounds already playing on the same player: keep them, stop them all, or stop only the ones from this asset. Stops are instant.")]
-		public AudioPlayerAsset.InterruptSoundsMode InterruptMode;
+		public InterruptSoundsMode InterruptMode;
 
 		[Tooltip("Seconds to wait before the asset starts. Not repeated when looping.")]
 		public float Delay;
@@ -53,6 +108,49 @@ namespace DevLocker.Audio
 	}
 
 	/// <summary>
+	/// Responsible for playing the desired audio.
+	/// Inherit to have custom behaviour.
+	///
+	/// Can be played via <see cref="AudioPlayerAsset"/> or standalone via <see cref="AudioPlayer.PlayConductor"/>.
+	/// Use <see cref="AudioPlayback.GetConductorStateValue{T}"/> and
+	/// <see cref="AudioPlayback.SetConductorStateValue"/> to persist state.
+	/// </summary>
+	[Serializable]
+	public abstract class AudioConductor
+	{
+		public abstract IEnumerator Play(AudioPlayback playback);
+
+		/// <summary>
+		/// Context is the object owning this conductor.
+		/// If you keep conductors in your own assets, call this from their OnValidate().
+		/// </summary>
+		public virtual void OnValidate(UnityEngine.Object context) { }
+	}
+
+	/// <summary>
+	/// Used as filters when choosing which conductor to play.
+	/// </summary>
+	[Serializable]
+	public abstract class AudioConductorFilter
+	{
+		public abstract bool IsAllowed(object context, AudioPlayback playback);
+
+		public virtual void OnValidate(UnityEngine.Object context) { }
+	}
+
+	[Serializable]
+	public struct FilteredConductor
+	{
+		[Tooltip("Responsible for playing the desired audio.")]
+		[SerializeReference]
+		public AudioConductor Conductor;
+
+		[Tooltip("All filters must pass for this conductor to be used. The first conductor whose filters all pass is played.")]
+		[SerializeReference]
+		public AudioConductorFilter[] Filters;
+	}
+
+	/// <summary>
 	/// Represents audio playback in progress.
 	/// </summary>
 	public class AudioPlayback
@@ -60,9 +158,9 @@ namespace DevLocker.Audio
 		public readonly AudioPlayer.AudioSourcesPoolMode SourcesPoolMode;
 		public AudioPlayer Player { get; internal set; }
 		public AudioSource AudioSource { get; internal set; }
-		public AudioPlayerAsset.AudioConductor Conductor { get; internal set; }
+		public AudioConductor Conductor { get; internal set; }
 		public UnityEngine.Object ConductorAsset { get; internal set; }	// Asset the conductor is coming from (optional).
-		public AudioPlayerAsset.ConductorsStateScope ConductorStateScope { get; internal set; }
+		public AudioPlaybackSettings.ConductorsStateScope ConductorStateScope { get; internal set; }
 		public bool HasConductorFinished { get; internal set; }
 		public readonly float StartTimeUnscaled;
 
@@ -70,7 +168,7 @@ namespace DevLocker.Audio
 		public bool IsPaused => Player && Player.IsPaused;	// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
 		public bool IsUsingConductors { get; internal set; }    // True when playing conductors (asset or standalone), false for a plain AudioResource.
 
-		public AudioPlayer.RepeatSettings Repeat { get; internal set; }
+		public AudioPlaybackSettings.RepeatSettings Repeat { get; internal set; }
 		public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 		public AudioSource Template { get; internal set; }
 
@@ -119,10 +217,10 @@ namespace DevLocker.Audio
 				throw new InvalidOperationException($"Trying to get conductor state value for \"{keyName}\", but no valid conductor is set.");
 			
 			switch (ConductorStateScope) {
-				case AudioPlayerAsset.ConductorsStateScope.PerAsset:
+				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
 					return GetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, defaultValue);
 
-				case AudioPlayerAsset.ConductorsStateScope.PerPlayer:
+				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					return Player.GetConductorStateValue(Conductor, ConductorAsset, keyName, defaultValue);
 				
 				default:
@@ -133,7 +231,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Get conductor state value that is saved per asset.
 		/// </summary>
-		public static T GetConductorStateValuePerAsset<T>(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, T defaultValue)
+		public static T GetConductorStateValuePerAsset<T>(AudioConductor conductor, UnityEngine.Object asset, string keyName, T defaultValue)
 		{
 			bool found = s_ConductorsPerAssetStateStorage.TryGetValue(new ConductorStateKey(conductor, asset, keyName), out object objValue);
 			return found ? (T)objValue : defaultValue;
@@ -148,11 +246,11 @@ namespace DevLocker.Audio
 				throw new InvalidOperationException($"Trying to set conductor state value for \"{keyName}\", but no valid conductor is set.");
 			
 			switch (ConductorStateScope) {
-				case AudioPlayerAsset.ConductorsStateScope.PerAsset:
+				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
 					SetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, value);
 					break;
 				
-				case AudioPlayerAsset.ConductorsStateScope.PerPlayer:
+				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					Player.SetConductorStateValue(Conductor, ConductorAsset, keyName, value);
 					break;
 				
@@ -164,7 +262,7 @@ namespace DevLocker.Audio
 		/// <summary>
 		/// Set conductor state value that is saved per asset.
 		/// </summary>
-		public static void SetConductorStateValuePerAsset(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
+		public static void SetConductorStateValuePerAsset(AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
 		{
 			s_ConductorsPerAssetStateStorage[new ConductorStateKey(conductor, asset, keyName)] = value;
 		}
@@ -217,7 +315,7 @@ namespace DevLocker.Audio
 #endif
 			}
 
-			public ConductorStateKey(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName)
+			public ConductorStateKey(AudioConductor conductor, UnityEngine.Object asset, string keyName)
 			{
 				KeyName = keyName;
 				
@@ -249,7 +347,7 @@ namespace DevLocker.Audio
 		#region Direct Play for Conductors
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
+		/// Used by <see cref="AudioConductor"/> to play sound without changing the player properties.
 		/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
 		public void PlayClip(AudioClip clip, float volume = 1.0f, float pitch = 1.0f)
@@ -265,7 +363,7 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> when PlayOneShot() needs to be used.
+		/// Used by <see cref="AudioConductor"/> when PlayOneShot() needs to be used.
 		/// </summary>
 		public void PlayClipOneShot(AudioClip clip, float volume = 1.0f)
 		{
@@ -280,7 +378,7 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
+		/// Used by <see cref="AudioConductor"/> to play sound without changing the player properties.
 		/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
 		public void PlayClip(ClipWithVolume clipPair, float pitch = 1.0f, int volumeOffsetDB = 0)
@@ -299,7 +397,7 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
+		/// Used by <see cref="AudioConductor"/> to play sound without changing the player properties.
 		/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
 		public void PlayClip(ClipWithVolumePitch clipPair, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
@@ -321,7 +419,7 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
+		/// Used by <see cref="AudioConductor"/> to play sound without changing the player properties.
 		/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
 		public void PlayResource(AudioResource resource, float pitch = 1.0f)
@@ -336,7 +434,7 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
+		/// Used by <see cref="AudioConductor"/> to play sound without changing the player properties.
 		/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
 		/// </summary>
 		public void PlayResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
