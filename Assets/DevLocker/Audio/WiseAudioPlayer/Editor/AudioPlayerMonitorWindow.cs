@@ -35,7 +35,7 @@ namespace DevLocker.Audio.Editor
 
 			public bool Mute;
 			public bool PlayOnEnable;
-			public AudioPlayer.RepeatMode RepeatMode;
+			public AudioPlaybackSettings.RepeatMode RepeatMode;
 			public float Volume;
 			public float Pitch;
 			public float SpatialBlend;
@@ -315,7 +315,7 @@ namespace DevLocker.Audio.Editor
 					GUILayout.Space(toggleMargin);
 					EditorGUILayout.Toggle(action.PlayOnEnable, GUILayout.Width(boolColumnWidth - toggleMargin));
 
-					GUILayout.Label(action.RepeatMode.ToString().Replace(nameof(AudioPlayer.RepeatMode.LoopWithInterval), "Interval"), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
+					GUILayout.Label(action.RepeatMode.ToString().Replace(nameof(AudioPlaybackSettings.RepeatMode.LoopWithInterval), "Interval"), EditorStyles.boldLabel, GUILayout.Width(enumColumnWidth));
 
 					EditorGUILayout.FloatField(action.Volume, GUILayout.Width(floatColumnWidth));
 					EditorGUILayout.FloatField(action.Pitch, GUILayout.Width(floatColumnWidth));

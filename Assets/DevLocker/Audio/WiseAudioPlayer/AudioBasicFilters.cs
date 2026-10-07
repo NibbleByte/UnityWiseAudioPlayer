@@ -9,7 +9,7 @@ namespace DevLocker.Audio.Conductors
 	#region Timing Predicates
 
 	[Serializable]
-	public class CooldownFilter : AudioPlayerAsset.AudioConductorFilter
+	public class CooldownFilter : AudioConductorFilter
 	{
 		[Tooltip("Minimum seconds since this player last started any sound.")]
 		public float CooldownSeconds = 0.1f;
@@ -39,7 +39,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareInt : AudioPlayerAsset.AudioConductorFilter
+	public class CompareInt : AudioConductorFilter
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -74,7 +74,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareFloat : AudioPlayerAsset.AudioConductorFilter
+	public class CompareFloat : AudioConductorFilter
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -109,7 +109,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareBool : AudioPlayerAsset.AudioConductorFilter
+	public class CompareBool : AudioConductorFilter
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -134,7 +134,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareString : AudioPlayerAsset.AudioConductorFilter
+	public class CompareString : AudioConductorFilter
 	{
 		public enum StringCompareType
 		{
@@ -186,7 +186,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareAssetReferences : AudioPlayerAsset.AudioConductorFilter
+	public class CompareAssetReferences : AudioConductorFilter
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -219,28 +219,28 @@ namespace DevLocker.Audio.Conductors
 	#region Logical Predicates
 
 	[Serializable]
-	public class Logical_OR : AudioPlayerAsset.AudioConductorFilter
+	public class Logical_OR : AudioConductorFilter
 	{
 		[SerializeReference]
-		public List<AudioPlayerAsset.AudioConductorFilter> OrFilters;
+		public List<AudioConductorFilter> OrFilters;
 
 		public override bool IsAllowed(object context, AudioPlayback playback) => OrFilters.Any(filter => filter.IsAllowed(context, playback));
 	}
 
 	[Serializable]
-	public class Logical_AND : AudioPlayerAsset.AudioConductorFilter
+	public class Logical_AND : AudioConductorFilter
 	{
 		[SerializeReference]
-		public List<AudioPlayerAsset.AudioConductorFilter> AndFilters;
+		public List<AudioConductorFilter> AndFilters;
 
 		public override bool IsAllowed(object context, AudioPlayback playback) => AndFilters.All(filter => filter.IsAllowed(context, playback));
 	}
 
 	[Serializable]
-	public class Logical_NOT : AudioPlayerAsset.AudioConductorFilter
+	public class Logical_NOT : AudioConductorFilter
 	{
 		[SerializeReference]
-		public AudioPlayerAsset.AudioConductorFilter NotFilter;
+		public AudioConductorFilter NotFilter;
 
 		public override bool IsAllowed(object context, AudioPlayback playback) => !NotFilter.IsAllowed(context, playback);
 	}
