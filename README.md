@@ -37,6 +37,8 @@ Make sure all your sounds are played through the `AudioPlayer` component or API 
 
 The `AudioPlayerAsset` serves as an audio proxy that lets you easily change what sounds should be played. Having sound definitions spread out across separate asset files makes collaborating much easier, and managing them is done through the well-known Unity Project window interface. Your programmers can link the asset in the right prefab, while your sound designer can tweak the asset itself without knowing exactly where it's played from.
 
+When the asset is played, its settings (repeat, interrupt mode, delay, output mixer, template and state scope) override the ones on the `AudioPlayer`.
+
 The asset offers you a list of `Conductors`. Each conductor has a filter that checks whether it should be played, and only the first allowed one is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
 - `PlayCollectionAudioConductor` - plays a sound picked from a list. Can play them in sequential, shuffle, or random order.
 - `PlayPitchSequenceConductor` - plays the same sound every time, but changes the pitch according to your settings.
@@ -47,7 +49,35 @@ The asset offers you a list of `Conductors`. Each conductor has a filter that ch
 
 ![Conductor Examples](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/ConductorFiltersShot.png)
 
-Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. Conductors can store their state on the `AudioPlayer` component (per audio player) or on the asset itself (per asset). You can choose this in the asset's "State Scope" setting.
+Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. The asset's "State Scope" setting decides whether this state is kept per audio player (each player has its own) or per asset (shared by all players). For example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence. Each conductor in the asset keeps its own state.
+
+### Playing conductors from code
+You don't have to use an `AudioPlayerAsset` to play conductors. If you'd rather keep them in your own assets and pick which one to play yourself, call `AudioPlayer.PlayConductor()` with your own `AudioPlaybackSettings` - the same settings the `AudioPlayerAsset` has. Pass the asset holding the conductors as well, so their state and the "Interrupt Same Asset" mode work per asset.
+
+```csharp
+[CreateAssetMenu]
+public class CharacterSounds : ScriptableObject
+{
+	public AudioPlaybackSettings Settings;
+
+	public PlayCollectionAudioConductor Footsteps;
+	public PlayCollectionAudioConductor FootstepsOnGrass;
+
+	public AudioPlayback PlayFootstep(AudioPlayer player, bool onGrass)
+	{
+		return player.PlayConductor(Settings, onGrass ? FootstepsOnGrass : Footsteps, this);
+	}
+
+	void OnValidate()
+	{
+		Settings.OnValidate(this);
+		Footsteps?.OnValidate(this);
+		FootstepsOnGrass?.OnValidate(this);
+	}
+}
+```
+
+The playing conductor uses only the provided settings - the player's own template, output mixer and repeat settings are ignored.
 
 ### Audio Monitor
 ![Audio Monitor editor window](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/AudioMonitorShot.png)

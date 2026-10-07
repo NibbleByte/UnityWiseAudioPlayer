@@ -14,6 +14,57 @@ namespace DevLocker.Audio.Utils.Editor
 	}
 
 	/// <summary>
+	/// Draws the <see cref="AudioPlayerAsset.Settings"/> members inline, as if they were members of the asset itself (no foldout).
+	/// </summary>
+	[CustomEditor(typeof(AudioPlayerAsset), true)]
+	[CanEditMultipleObjects]
+	internal class AudioPlayerAssetEditor : UnityEditor.Editor
+	{
+		public override void OnInspectorGUI()
+		{
+			serializedObject.Update();
+
+			SerializedProperty property = serializedObject.GetIterator();
+			bool enterChildren = true;
+			while (property.NextVisible(enterChildren)) {
+				enterChildren = false;
+
+				if (property.propertyPath == "m_Script") {
+					using (new EditorGUI.DisabledScope(true)) {
+						EditorGUILayout.PropertyField(property);
+					}
+					continue;
+				}
+
+				if (property.propertyPath == nameof(AudioPlayerAsset.Settings)) {
+					DrawChildrenInline(property);
+					continue;
+				}
+
+				EditorGUILayout.PropertyField(property, true);
+			}
+
+			serializedObject.ApplyModifiedProperties();
+		}
+
+		private static void DrawChildrenInline(SerializedProperty parent)
+		{
+			SerializedProperty child = parent.Copy();
+			SerializedProperty end = parent.GetEndProperty();
+
+			if (!child.NextVisible(true))
+				return;
+
+			while (!SerializedProperty.EqualContents(child, end)) {
+				EditorGUILayout.PropertyField(child, true);
+
+				if (!child.NextVisible(false))
+					break;
+			}
+		}
+	}
+
+	/// <summary>
 	/// Draw "P" play button next to the reference.
 	/// </summary>
 	[CustomPropertyDrawer(typeof(AudioPlayerAsset))]

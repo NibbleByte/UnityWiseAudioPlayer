@@ -14,9 +14,9 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("Minimum seconds since this player last started any sound.")]
 		public float CooldownSeconds = 0.1f;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
-			if (Time.unscaledTime - player.LastPlayTimeUnscaled > CooldownSeconds) {
+			if (Time.unscaledTime - playback.Player.LastPlayTimeUnscaled > CooldownSeconds) {
 				return true;
 			}
 
@@ -47,7 +47,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("The right-hand side value")]
 		public int Value;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -82,7 +82,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("The right-hand side value")]
 		public float Value;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -116,7 +116,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("Check if the boolean context value equals this one")]
 		public bool Value;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -155,7 +155,7 @@ namespace DevLocker.Audio.Conductors
 		public bool NegateResult;
 
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -196,7 +196,7 @@ namespace DevLocker.Audio.Conductors
 		[Tooltip("Allow only if result is false, i.e. negative comparison.")]
 		public bool NegateResult;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset)
+		public override bool IsAllowed(object context, AudioPlayback playback)
 		{
 			var values = context as IValuesContainer;
 			if (values == null) {
@@ -224,7 +224,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public List<AudioPlayerAsset.AudioConductorFilter> OrFilters;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset) => OrFilters.Any(filter => filter.IsAllowed(context, player, asset));
+		public override bool IsAllowed(object context, AudioPlayback playback) => OrFilters.Any(filter => filter.IsAllowed(context, playback));
 	}
 
 	[Serializable]
@@ -233,7 +233,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public List<AudioPlayerAsset.AudioConductorFilter> AndFilters;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset) => AndFilters.All(filter => filter.IsAllowed(context, player, asset));
+		public override bool IsAllowed(object context, AudioPlayback playback) => AndFilters.All(filter => filter.IsAllowed(context, playback));
 	}
 
 	[Serializable]
@@ -242,7 +242,7 @@ namespace DevLocker.Audio.Conductors
 		[SerializeReference]
 		public AudioPlayerAsset.AudioConductorFilter NotFilter;
 
-		public override bool IsAllowed(object context, AudioPlayer player, AudioPlayerAsset asset) => !NotFilter.IsAllowed(context, player, asset);
+		public override bool IsAllowed(object context, AudioPlayback playback) => !NotFilter.IsAllowed(context, playback);
 	}
 
 	#endregion

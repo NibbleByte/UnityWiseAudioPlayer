@@ -29,7 +29,7 @@ namespace DevLocker.Audio.Editor
 
 			public MonoBehaviour Player;
 			public AudioResource Resource;
-			public AudioPlayerAsset Asset;
+			public UnityEngine.Object Asset;
 			public AudioMixerGroup MixerGroup;
 			public AudioSource Template;
 
@@ -93,15 +93,15 @@ namespace DevLocker.Audio.Editor
 			}
 		}
 
-		private void OnPlayStarted(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Play, playback);
+		private void OnPlayStarted(AudioPlayback playback) => AddAction(ActionType.Play, playback);
 
-		private void OnPlayStopped(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Stop, playback);
+		private void OnPlayStopped(AudioPlayback playback) => AddAction(ActionType.Stop, playback);
 
-		private void OnPlayPaused(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.Pause, playback);
+		private void OnPlayPaused(AudioPlayback playback) => AddAction(ActionType.Pause, playback);
 
-		private void OnPlayUnpaused(AudioPlayer.AudioPlayback playback) => AddAction(ActionType.UnPause, playback);
+		private void OnPlayUnpaused(AudioPlayback playback) => AddAction(ActionType.UnPause, playback);
 
-		private void AddAction(ActionType actionType, AudioPlayer.AudioPlayback playback)
+		private void AddAction(ActionType actionType, AudioPlayback playback)
 		{
 			if (!m_ListenForEvents)
 				return;
@@ -116,7 +116,7 @@ namespace DevLocker.Audio.Editor
 
 				Player = playback.Player,
 				Resource = playback.AudioSource.resource,
-				Asset = playback.AudioPlayerAsset,
+				Asset = playback.ConductorAsset,
 				MixerGroup = playback.OutputMixer,
 				Template = playback.Template,
 
@@ -241,7 +241,7 @@ namespace DevLocker.Audio.Editor
 					EditorGUILayout.FloatField(action.Time, GUILayout.MaxWidth(timeColumnWidth));
 					EditorGUILayout.ObjectField(action.Player, action.Player?.GetType(), true, GUILayout.ExpandWidth(true));
 					EditorGUILayout.ObjectField(action.Resource, typeof(AudioResource), true, GUILayout.ExpandWidth(true));
-					EditorGUILayout.ObjectField(action.Asset, typeof(AudioPlayerAsset), false, GUILayout.ExpandWidth(true));
+					EditorGUILayout.ObjectField(action.Asset, action.Asset ? action.Asset.GetType() : typeof(UnityEngine.Object), false, GUILayout.ExpandWidth(true));
 					EditorGUILayout.FloatField(action.ListenerDistance, GUILayout.MaxWidth(timeColumnWidth));
 
 				}
@@ -307,7 +307,7 @@ namespace DevLocker.Audio.Editor
 					EditorGUILayout.ObjectField(action.Resource, typeof(AudioResource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.MixerGroup, typeof(AudioMixerGroup), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 					EditorGUILayout.ObjectField(action.Template, typeof(AudioSource), true, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
-					EditorGUILayout.ObjectField(action.Asset, typeof(AudioPlayerAsset), false, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
+					EditorGUILayout.ObjectField(action.Asset, action.Asset ? action.Asset.GetType() : typeof(UnityEngine.Object), false, GUILayout.Width(objectFlexibleWidth - objectMarginFix));
 
 					float toggleMargin = 8f;
 					GUILayout.Space(toggleMargin);
