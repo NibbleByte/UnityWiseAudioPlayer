@@ -13,10 +13,10 @@ namespace DevLocker.Audio.Conductors
 	{
 		public ClipWithVolumePitch AudioClip;
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
 			if (AudioClip.Clip == null) {
-				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
+				Debug.LogWarning($"No audio clip specified for conductor to play on \"{playback.DebugContext}\".", playback.DebugContext);
 				yield break;
 			}
 
@@ -60,7 +60,7 @@ namespace DevLocker.Audio.Conductors
 		public ClipWithVolumePitch[] AudioClips;
 
 #if UNITY_EDITOR
-		public override void OnValidate(AudioPlayerAsset context)
+		public override void OnValidate(UnityEngine.Object context)
 		{
 			base.OnValidate(context);
 
@@ -76,12 +76,10 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
 			if (AudioClips.Length == 0)
 				yield break;
-
-			AudioPlayer player = playback.Player;
 
 			// Offsets on top of the selected clip's own volume and pitch. Roll them only once per play.
 			int volumeOffsetDB = VolumeRange.Roll();
@@ -89,18 +87,18 @@ namespace DevLocker.Audio.Conductors
 
 			switch (Mode) {
 				case PlaybackMode.Sequential:
-					int sequentialIndex = asset.GetConductorsStorageValue(SequentialIndex_StorageKey, player, 0);
+					int sequentialIndex = playback.GetConductorStateValue(SequentialIndex_StorageKey, 0);
 
 					playback.PlayClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
 
 					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
 
-					asset.SetConductorsStorageValue(SequentialIndex_StorageKey, player, sequentialIndex);
+					playback.SetConductorStateValue(SequentialIndex_StorageKey, sequentialIndex);
 
 					break;
 
 				case PlaybackMode.Shuffle:
-					var shuffleIndices = asset.GetConductorsStorageValue<List<int>>(ShuffleIndices_StorageKey, player, null);
+					var shuffleIndices = playback.GetConductorStateValue<List<int>>(ShuffleIndices_StorageKey, null);
 					if (shuffleIndices == null || shuffleIndices.Count == 0) {
 						shuffleIndices = Enumerable.Range(0, AudioClips.Length).ToList();
 						Shuffle(shuffleIndices);
@@ -110,12 +108,12 @@ namespace DevLocker.Audio.Conductors
 
 					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
 
-					asset.SetConductorsStorageValue(ShuffleIndices_StorageKey, player, shuffleIndices);
+					playback.SetConductorStateValue(ShuffleIndices_StorageKey, shuffleIndices);
 
 					break;
 
 				case PlaybackMode.Random:
-					var randomLastIndices = asset.GetConductorsStorageValue<Queue<int>>(RandomLastIndices_StorageKey, player, null);
+					var randomLastIndices = playback.GetConductorStateValue<Queue<int>>(RandomLastIndices_StorageKey, null);
 					if (randomLastIndices == null) {
 						randomLastIndices = new Queue<int>();
 					}
@@ -140,7 +138,7 @@ namespace DevLocker.Audio.Conductors
 						randomLastIndices.Dequeue();
 					}
 
-					asset.SetConductorsStorageValue(RandomLastIndices_StorageKey, player, randomLastIndices);
+					playback.SetConductorStateValue(RandomLastIndices_StorageKey, randomLastIndices);
 
 
 					break;
@@ -181,9 +179,9 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject VisualEffectsPrefab;
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
-			var baseIt = base.Play(playback, asset);
+			var baseIt = base.Play(playback);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
@@ -213,9 +211,9 @@ namespace DevLocker.Audio.Conductors
 
 		public GameObject[] VisualEffectsPrefabs;
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
-			var baseIt = base.Play(playback, asset);
+			var baseIt = base.Play(playback);
 			while (baseIt.MoveNext()) {
 				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
 			};
@@ -249,7 +247,7 @@ namespace DevLocker.Audio.Conductors
 
 		public float Overlap = 0f;
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
 			AudioSource audioSource = playback.AudioSource;
 
@@ -286,7 +284,7 @@ namespace DevLocker.Audio.Conductors
 		private const string LastPlayTime_StorageKey = "LastPlayTime_" + nameof(PlayPitchSequenceConductor);
 
 #if UNITY_EDITOR
-		public override void OnValidate(AudioPlayerAsset context)
+		public override void OnValidate(UnityEngine.Object context)
 		{
 			base.OnValidate(context);
 
@@ -305,17 +303,15 @@ namespace DevLocker.Audio.Conductors
 		}
 #endif
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
-			AudioPlayer player = playback.Player;
-
 			if (AudioClip.Clip == null) {
-				Debug.LogWarning($"No audio clip specified for conductor to play on \"{asset.name}\".", asset);
+				Debug.LogWarning($"No audio clip specified for conductor to play on \"{playback.DebugContext}\".", playback.DebugContext);
 				yield break;
 			}
 
-			int pitchIndex = asset.GetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
-			float lastPlayTime = asset.GetConductorsStorageValue(LastPlayTime_StorageKey, player, - 1f);
+			int pitchIndex = playback.GetConductorStateValue(PitchIndex_StorageKey, 0);
+			float lastPlayTime = playback.GetConductorStateValue(LastPlayTime_StorageKey, -1f);
 
 			if (ResetAfterSeconds > 0 && lastPlayTime + ResetAfterSeconds < Time.unscaledTime) {
 				pitchIndex = 0;
@@ -330,8 +326,8 @@ namespace DevLocker.Audio.Conductors
 				: Mathf.Min(pitchIndex + 1, PitchSequence.Length - 1)
 				;
 
-			asset.SetConductorsStorageValue(PitchIndex_StorageKey, player, pitchIndex);
-			asset.SetConductorsStorageValue(LastPlayTime_StorageKey, player, Time.unscaledTime);
+			playback.SetConductorStateValue(PitchIndex_StorageKey, pitchIndex);
+			playback.SetConductorStateValue(LastPlayTime_StorageKey, Time.unscaledTime);
 
 			yield break;
 		}
@@ -339,21 +335,16 @@ namespace DevLocker.Audio.Conductors
 		/// <summary>
 		/// Helper function to reset the pitch sequence. Useful if <see cref="ResetAfterSeconds"/> is set to 0.
 		/// </summary>
-		public static void ResetPitchIndex(AudioPlayer player)
+		public static void ResetPitchIndex(UnityEngine.Object asset, AudioPlayer player)
 		{
-			if (player == null)
-				return;
-
-			if (player.ActivePlaybacks.Any()) {
-				foreach (var playback in player.ActivePlaybacks) {
-					if (playback.AudioPlayerAsset != null) {
-						playback.AudioPlayerAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
-					}
-				}
-			} else if (player.AudioReference.AudioAsset) {
-				player.AudioReference.AudioAsset.SetConductorsStorageValue(PitchIndex_StorageKey, player, 0);
+			// Asset can be null.
+			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
+			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);
+			
+			if (player) {
+				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
+				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);
 			}
-
 		}
 	}
 
@@ -385,7 +376,7 @@ namespace DevLocker.Audio.Conductors
 		public float Overlap = 0.1f;
 		public bool RandomizeSequence = false;
 
-		public override IEnumerator Play(AudioPlayer.AudioPlayback playback, AudioPlayerAsset asset)
+		public override IEnumerator Play(AudioPlayback playback)
 		{
 			if (Clips.Length == 0)
 				yield break;

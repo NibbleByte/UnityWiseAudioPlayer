@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 792939c690b01f44c82bb350f7de1e97, type: 3}
   m_Name: RubbingBlocks_AudioAsset
   m_EditorClassIdentifier: 
-  StateScope: 0
-  Repeat:
-    Mode: 0
-    MinSeconds: 0
-    MaxSeconds: 0
-  InterruptMode: 1
-  Delay: 0
-  OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
-  Template: {fileID: 0}
+  Settings:
+    StateScope: 0
+    Repeat:
+      Mode: 0
+      MinSeconds: 0
+      MaxSeconds: 0
+    InterruptMode: 1
+    Delay: 0
+    OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+    Template: {fileID: 0}
   Conductors:
   - Conductor:
       rid: 8526195093612528054

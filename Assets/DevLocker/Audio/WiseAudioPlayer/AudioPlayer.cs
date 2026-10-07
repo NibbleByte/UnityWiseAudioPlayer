@@ -105,196 +105,6 @@ namespace DevLocker.Audio
 			}
 		}
 
-		/// <summary>
-		/// Represents audio playback in progress.
-		/// </summary>
-		public class AudioPlayback
-		{
-			public readonly AudioSourcesPoolMode SourcesPoolMode;
-			public AudioPlayer Player { get; internal set; }
-			public AudioSource AudioSource { get; internal set; }
-			public AudioPlayerAsset AudioPlayerAsset { get; internal set; }
-			public bool HasConductorFinished { get; internal set; }
-			public readonly float StartTimeUnscaled;
-
-			public bool IsPlaying => AudioSource != null && (!HasConductorFinished || (AudioSource.isPlaying || IsPaused) || (!IsUsingConductors && Repeat.IsInterval));
-			public bool IsPaused => Player && Player.IsPaused;				// When AudioSource is paused, isPlaying returns false. No isPaused property, so we have to track this ourselves :(
-			public bool IsUsingConductors { get; internal set; }    // Because using an audioReference or playing standalone conductor.
-
-			public RepeatSettings Repeat { get; internal set; }
-			public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
-			public AudioSource Template { get; internal set; }
-
-			internal Coroutine ConductorCoroutine;
-			internal Coroutine StopFadeCoroutine;
-			internal Coroutine PauseFadeCoroutine;
-			internal float PauseInitialVolume;
-
-			internal float NextPlayTime;						// For LoopWithInterval mode.
-			internal bool LastIsPlayingForLoopWithInterval;		// For LoopWithInterval mode.
-
-			internal bool WasCancelled;
-
-			public AudioPlayback(AudioPlayer player, AudioSource audioSource, AudioSourcesPoolMode poolMode, RepeatSettings repeat, float startTimeUnscaled)
-			{
-				SourcesPoolMode = poolMode;
-				AudioSource = audioSource;
-				Player = player;
-				Repeat = repeat;
-				StartTimeUnscaled = startTimeUnscaled;
-			}
-
-			#region Direct Play for Conductors
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
-			/// </summary>
-			public void PlayClip(AudioClip clip, float volume = 1.0f, float pitch = 1.0f)
-			{
-				if (clip == null)
-					throw new ArgumentNullException();
-
-				AudioSource.clip = clip;
-				AudioSource.pitch = pitch;
-
-				AudioSource.volume = volume * Player.Volume;
-				AudioSource.Play();
-			}
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> when PlayOneShot() needs to be used.
-			/// </summary>
-			public void PlayClipOneShot(AudioClip clip, float volume = 1.0f)
-			{
-				if (clip == null)
-					throw new ArgumentNullException();
-
-				// So it shows up correctly in the audio monitor window.
-				AudioSource.clip = clip;
-				AudioSource.volume = volume * Player.Volume;
-
-				AudioSource.PlayOneShot(clip);
-			}
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
-			/// </summary>
-			public void PlayClip(ClipWithVolume clipPair, float pitch = 1.0f, int volumeOffsetDB = 0)
-			{
-				if (clipPair.Clip == null)
-					throw new ArgumentNullException();
-
-				AudioSource.clip = clipPair.Clip;
-				AudioSource.pitch = pitch;
-
-				// Rolls the volume randomization range (if used), so call it only once.
-				float volume = clipPair.GetPlayVolume(volumeOffsetDB);
-
-				AudioSource.volume = volume * Player.Volume;
-				AudioSource.Play();
-			}
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
-			/// </summary>
-			public void PlayClip(ClipWithVolumePitch clipPair, int volumeOffsetDB = 0, int pitchOffsetCents = 0)
-			{
-				if (clipPair.Clip == null)
-					throw new ArgumentNullException();
-
-				AudioSource.clip = clipPair.Clip;
-
-				// Pitch range has priority over the pitches list.
-				// No variation and no offset means pitch of 0 cents, i.e. 1f - resets the pitch in case it was changed by the last user.
-				AudioSource.pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, clipPair.GetRandomPitch(pitchOffsetCents));
-
-				// Rolls the volume randomization range (if used), so call it only once.
-				float volume = clipPair.GetPlayVolume(volumeOffsetDB);
-
-				AudioSource.volume = volume * Player.Volume;
-				AudioSource.Play();
-			}
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
-			/// </summary>
-			public void PlayResource(AudioResource resource, float pitch = 1.0f)
-			{
-				if (resource == null)
-					throw new ArgumentNullException();
-
-				AudioSource.resource = resource;
-				AudioSource.pitch = pitch;
-
-				AudioSource.Play();
-			}
-
-			/// <summary>
-			/// Used by <see cref="AudioPlayerAsset.AudioConductor"/> to play sound without changing the player properties.
-			/// This way, the <see cref="Editor.AudioPlayerMonitorWindow"/> will show the correct sound.
-			/// </summary>
-			public void PlayResource(ResourceWithVolume resourcePair, float pitch = 1.0f, int volumeOffsetDB = 0)
-			{
-				if (resourcePair.Resource == null)
-					throw new ArgumentNullException();
-
-				AudioSource.resource = resourcePair.Resource;
-				AudioSource.pitch = pitch;
-
-				// Rolls the volume randomization range (if used).
-				AudioSource.volume = resourcePair.GetPlayVolume(volumeOffsetDB) * Player.Volume;
-				AudioSource.Play();
-			}
-
-			#endregion
-
-			#region Coroutines
-
-			internal void StopConductorCoroutine()
-			{
-				if (ConductorCoroutine != null) {
-					Player.StopCoroutine(ConductorCoroutine);
-					ConductorCoroutine = null;
-				}
-			}
-
-			internal void StopPauseFadeCoroutine()
-			{
-				if (PauseFadeCoroutine != null) {
-					Player.StopCoroutine(PauseFadeCoroutine);
-					PauseFadeCoroutine = null;
-				}
-			}
-
-			internal void StopStopFadeCoroutine()
-			{
-				if (StopFadeCoroutine != null) {
-					Player.StopCoroutine(StopFadeCoroutine);
-					StopFadeCoroutine = null;
-				}
-			}
-
-			internal IEnumerator FadeVolumeCrt(float fadeSeconds, float workingVolume, bool fadeIn, Action callbackOnFinish = null)
-			{
-				float startTime = Time.unscaledTime;
-				float startVolume = fadeIn ? 0f : workingVolume;
-				float endVolume = fadeIn ? workingVolume : 0f;
-
-				while (Time.unscaledTime - startTime < fadeSeconds) {
-					AudioSource.volume = Mathf.Lerp(startVolume, endVolume, (Time.unscaledTime - startTime) / fadeSeconds);
-					yield return null;
-				}
-
-				callbackOnFinish?.Invoke();
-			}
-
-			#endregion
-		}
-
 		public delegate void PlaybackEventHandler(AudioPlayback playback);
 		public static event PlaybackEventHandler PlaybackStarted;
 		public static event PlaybackEventHandler PlaybackPaused;
@@ -324,55 +134,14 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Object used by <see cref="AudioPlayerAsset"/> filters as context.
-		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
-		/// </summary>
-		public object ConductorsFilterContext;
-
-		/// <summary>
-		/// Used by conductors to persist state per player between usages. For example: don't repeat last asset.
-		/// Try to use unique key names.
-		/// </summary>
-		public Dictionary<string, object> ConductorsStateStorage = new Dictionary<string, object>();
-
-		/// <summary>
 		/// Output mixer to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
 		/// </summary>
 		public AudioMixerGroup OutputMixer { get => m_OutputMixer; set => m_OutputMixer = value; }
 
 		/// <summary>
-		/// Since <see cref="AudioPlayerAsset"/> can override the output mixer, call this to get the effective output mixer to be used.
-		/// </summary>
-		public AudioMixerGroup GetEffectiveOutputMixer(AudioPlayerAsset asset = null)
-		{
-			if (asset == null) {
-				if (m_OutputMixer)
-					return m_OutputMixer;
-
-				if (m_Template)
-					return m_Template.outputAudioMixerGroup;
-
-			} else {
-
-				if (asset.OutputMixer)
-					return asset.OutputMixer;
-
-				if (asset.Template)
-					return asset.Template.outputAudioMixerGroup;
-			}
-
-			return null;
-		}
-
-		/// <summary>
 		/// Template prefab to use. Will be overriden by <see cref="AudioPlayerAsset"/>.
 		/// </summary>
 		public AudioSource Template { get => m_Template; set => m_Template = value; }
-
-		/// <summary>
-		/// Since <see cref="AudioPlayerAsset"/> can override the template, call this to get the effective template to be used.
-		/// </summary>
-		public AudioSource GetEffectiveTemplate(AudioPlayerAsset asset = null) => asset == null ? m_Template : asset.Template;
 
 		public bool Mute {
 			get => m_Mute;
@@ -407,14 +176,72 @@ namespace DevLocker.Audio
 		public RepeatSettings Repeat { get => m_Repeat; set => m_Repeat = value; }
 
 		/// <summary>
-		/// Since <see cref="AudioPlayerAsset"/> overrides the repeat mode, use this to get the actually used repeat mode.
-		/// </summary>
-		public RepeatSettings GetEffectiveRepeatSettings(AudioPlayerAsset asset = null) => asset == null ? m_Repeat : asset.Repeat;
-
-		/// <summary>
 		/// Volume used when playing new sounds - will not affect already playing sounds.
 		/// </summary>
 		public float Volume { get => m_Volume; set => m_Volume = value; }
+		
+		/// <summary>
+		/// Object used by <see cref="AudioPlayerAsset.AudioConductorFilter"/> as context.
+		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
+		/// </summary>
+		public object ConductorsFilterContext;
+		
+		#region Conductor State Helpers
+		
+		/// <summary>
+		/// Used by conductors to persist state per player between usages. For example: don't repeat last clip.
+		/// Try to use unique key names.
+		/// </summary>
+		private Dictionary<AudioPlayback.ConductorStateKey, object> m_ConductorsStateStorage = new Dictionary<AudioPlayback.ConductorStateKey, object>();
+
+		/// <summary>
+		/// Get stored conductor state value (per player).
+		/// Conductors should use <see cref="AudioPlayback.GetConductorStateValue{T}"/> instead.
+		/// </summary>
+		public T GetConductorStateValue<T>(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, T defaultValue)
+		{
+			if (m_ConductorsStateStorage.TryGetValue(new AudioPlayback.ConductorStateKey(conductor, asset, keyName), out object objValue))
+				return (T) objValue;
+
+			return defaultValue;
+		}
+
+		/// <summary>
+		/// Set conductor state value (per player).
+		/// Conductors should use <see cref="AudioPlayback.SetConductorStateValue"/> instead.
+		/// </summary>
+		public void SetConductorStateValue(AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
+		{
+			m_ConductorsStateStorage[new AudioPlayback.ConductorStateKey(conductor, asset, keyName)] = value;
+		}
+		
+		/// <summary>
+		/// Set all conductor state values of given type that are saved on this player.
+		/// </summary>
+		public void SetConductorStateValueForType(Type conductorType, UnityEngine.Object asset, string keyName, object value)
+		{
+			string assetName = asset ? asset.name : null;
+			ulong assetId = asset ? AudioPlayback.ConductorStateKey.GetId(asset) : 0;
+			
+			var matchedKeys = new List<AudioPlayback.ConductorStateKey>();
+			
+			foreach (var conductorKey in m_ConductorsStateStorage.Keys) {
+				if (conductorKey.KeyName == keyName &&
+					conductorType.IsAssignableFrom(conductorKey.ConductorType) &&
+					// No conductor id.
+					conductorKey.AssetName == assetName && 
+					conductorKey.AssetId == assetId
+					) {
+					matchedKeys.Add(conductorKey);
+				}
+			}
+			
+			foreach (var key in matchedKeys) {
+				m_ConductorsStateStorage[key] = value;
+			}
+		}
+		
+		#endregion
 
 		/// <summary>
 		/// Index of the gamepad output to use. -1 means normal speakers output instead of gamepad. Valid slots are 0-3.
@@ -479,12 +306,12 @@ namespace DevLocker.Audio
 		private const string ChildPoolContainerName = "__AudioPlayerPool__";
 
 		// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
-		public static AudioPlayer Quick2DPlayer;
+		private static AudioPlayer s_Quick2DPlayer;
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void ClearStaticsCache()
 		{
-			Quick2DPlayer = null;
+			s_Quick2DPlayer = null;
 		}
 
 		protected virtual void OnEnable()
@@ -604,6 +431,19 @@ namespace DevLocker.Audio
 			return PlayImpl(audioReference, delay);
 		}
 
+		/// <summary>
+		/// Play a conductor directly. Providing asset is preferable but optional.
+		/// Useful if you keep conductors in your own assets and do the filtering yourself.
+		/// Uses only the provided <paramref name="settings"/> - player's template, output mixer and repeat settings are NOT used.
+		/// </summary>
+		public AudioPlayback PlayConductor(AudioPlaybackSettings settings, AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object conductorAsset)
+		{
+			if (conductor == null)
+				throw new ArgumentNullException(nameof(conductor));
+
+			return PlayConductorImpl(settings, conductor, conductorAsset);
+		}
+
 		protected virtual AudioPlayback PlayImpl(AudioReferenceProperty audioReference, float delay)
 		{
 			if (IsPaused) {
@@ -617,16 +457,53 @@ namespace DevLocker.Audio
 				return null;
 
 			if (audioReference.AudioAsset != null) {
-
-				var conductorCoroutine = StartCoroutine(StartAssetPlayback(audioReference.AudioAsset, delay, playback));
-
+				var asset = audioReference.AudioAsset;
+				var settings = asset.Settings;
+				settings.Delay += delay;
+				
+				var conductorCoroutine = StartCoroutine(StartConductorsPlayback(settings, asset.Conductors, asset, playback));
+				
 				// We can get the coroutine after running it initially, but it may already have finished.
 				if (!playback.HasConductorFinished) {
 					playback.ConductorCoroutine = conductorCoroutine;
 				}
-
 			} else {
 				StartResourcePlayback(audioReference.AudioResource, delay, playback);
+			}
+
+			// If AudioSource is missing playback got released immediately, which means it didn't actually play.
+			if (!playback.WasCancelled && playback.AudioSource != null) {
+				LastPlayTimeUnscaled = Time.unscaledTime;
+				PlaybackStarted?.Invoke(playback);
+			}
+
+			return playback;
+		}
+
+		protected virtual AudioPlayback PlayConductorImpl(AudioPlaybackSettings settings, AudioPlayerAsset.AudioConductor conductor, UnityEngine.Object conductorAsset)
+		{
+			if (IsPaused) {
+				UnPause();
+			}
+
+			var playback = AcquireAudioPlayback();
+
+			// Something went wrong, abort. Probably editor is quitting.
+			if (playback == null)
+				return null;
+
+			AudioPlayerAsset.FilteredConductor[] conductors = new []{
+				new AudioPlayerAsset.FilteredConductor(){
+					Conductor = conductor,
+					Filters = Array.Empty<AudioPlayerAsset.AudioConductorFilter>(),
+				}
+			};
+			
+			var conductorCoroutine = StartCoroutine(StartConductorsPlayback(settings, conductors, conductorAsset, playback));
+			
+			// We can get the coroutine after running it initially, but it may already have finished.
+			if (!playback.HasConductorFinished) {
+				playback.ConductorCoroutine = conductorCoroutine;
 			}
 
 			// If AudioSource is missing playback got released immediately, which means it didn't actually play.
@@ -753,13 +630,13 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks that use the given asset.
+		/// Instantly stop all active playbacks that use conductor coming from given asset.
 		/// </summary>
-		public virtual void StopAllWithAsset(AudioPlayerAsset asset, AudioPlayback excludePlayback = null)
+		public virtual void StopAllWithConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				var playback = m_ActivePlaybacks[i];
-				if (playback.AudioPlayerAsset == asset && excludePlayback != playback) {
+				if (playback.ConductorAsset == conductorAsset && excludePlayback != playback) {
 
 					// Before actually releasing the playback, so it can be used by the event.
 					PlaybackStopped?.Invoke(playback);
@@ -960,12 +837,12 @@ namespace DevLocker.Audio
 			bool setAsDefaultPlayer = false;
 
 			if (gameObject == null) {
-				if (Quick2DPlayer == null) {
+				if (s_Quick2DPlayer == null) {
 					gameObject = new GameObject("2D Audio Player");
 					setAsDefaultPlayer = true;
 				}
 
-				player = Quick2DPlayer;
+				player = s_Quick2DPlayer;
 			} else {
 				player = gameObject.GetComponent<AudioPlayer>();
 			}
@@ -981,7 +858,7 @@ namespace DevLocker.Audio
 				//player.Template = templateSource;
 
 				if (setAsDefaultPlayer) {
-					Quick2DPlayer = player;
+					s_Quick2DPlayer = player;
 				}
 			}
 
@@ -1077,37 +954,124 @@ namespace DevLocker.Audio
 
 		#endregion
 
-		private IEnumerator StartAssetPlayback(AudioPlayerAsset asset, float delay, AudioPlayback playback)
+		/// <summary>
+		/// Plays an asset (selecting a conductor by its filters) or a standalone conductor with the given settings.
+		/// </summary>
+		private IEnumerator StartConductorsPlayback(AudioPlaybackSettings settings, AudioPlayerAsset.FilteredConductor[] conductors, UnityEngine.Object conductorAsset, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = true;
-			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutputMixer(asset);
-			playback.AudioSource.loop = GetEffectiveRepeatSettings(asset).IsLoop;
-			playback.Repeat = GetEffectiveRepeatSettings(asset);
+			playback.ConductorAsset = conductorAsset;
+			playback.AudioSource.outputAudioMixerGroup = settings.GetEffectiveOutputMixer();
+			playback.AudioSource.loop = settings.Repeat.IsLoop;
+			playback.Repeat = settings.Repeat;
+			playback.ConductorStateScope = settings.StateScope;
 
-			playback.Template = GetEffectiveTemplate(asset);
-			if (playback.Template) {
-				CopyAudioSourceDetails(playback.AudioSource, playback.Template);
+			playback.Template = settings.Template;
+			if (settings.Template) {
+				CopyAudioSourceDetails(playback.AudioSource, settings.Template);
 			} else {
 				ResetAudioSourceDetails(playback.AudioSource);
 			}
 
-			playback.AudioPlayerAsset = asset;
-			
-			delay += asset.Delay;
-
-			if (delay > 0f) {
-				float waitTime = 0f;
-				while (waitTime < delay) {
-					yield return null;
-
-					if (!IsPaused) {
-						waitTime += Time.unscaledDeltaTime;
-					}
-				}
+			if (settings.Delay > 0f) {
+				yield return WaitUnpausedDelay(settings.Delay);
 			}
 
-			yield return asset.Play(playback, ConductorsFilterContext);
+			AudioSource source = playback.AudioSource;
 
+			switch (settings.InterruptMode) {
+				case AudioPlayerAsset.InterruptSoundsMode.DontInterrupt:
+					// Do nothing.
+					break;
+				case AudioPlayerAsset.InterruptSoundsMode.InterruptAll:
+					StopAllExcept(playback);
+					break;
+				case AudioPlayerAsset.InterruptSoundsMode.InterruptSameAsset:
+					if (conductorAsset != null) {
+						StopAllWithConductorAsset(conductorAsset, playback);
+					} else {
+						// Same as DontInterrupt.
+					}
+					break;
+				default: throw new NotSupportedException(settings.InterruptMode.ToString());
+			}
+
+			bool customLoop;
+			do {
+				customLoop = false;
+
+				var conductor = conductors.FirstOrDefault(entry => entry.Filters.All(f => f?.IsAllowed(ConductorsFilterContext, playback) ?? true)).Conductor;
+				if (conductor != null) {
+
+					// If conductor has custom logic other than just playing a looped sound,
+					// we implement the loop. Normal sounds should still loop via the source itself,
+					// which should drop any playback gaps between loops.
+					if (settings.Repeat.IsRepeating && !(conductor is Conductors.PlayAudioConductor)) {
+						customLoop = true;
+						source.loop = false;
+					}
+
+					playback.Conductor = conductor;
+					yield return conductor.Play(playback);
+					playback.Conductor = null;
+
+				} else {
+
+					if (settings.Repeat.IsRepeating) {
+						// If no match, keep looping untill we get a match according to the loop pattern.
+						yield return null;
+						customLoop = true;
+						continue;
+					} else {
+						playback.WasCancelled = true;
+						break;
+					}
+				}
+
+				if (customLoop) {
+					do {
+						yield return null;
+					} while (this && (source.isPlaying || IsPaused));
+
+					if (this == null)
+						yield break;
+				}
+
+				if (settings.Repeat.IsInterval) {
+					float waitTime = settings.Repeat.RollInterval();
+					float passedTime = 0.0f;
+
+					while (passedTime <= waitTime && settings.Repeat.IsRepeating) {
+						yield return null;
+
+						if (this == null)
+							yield break;
+
+						if (!IsPaused && !source.isPlaying) {
+							passedTime += Time.unscaledDeltaTime;
+						}
+					}
+				}
+
+			} while (settings.Repeat.IsInterval || customLoop);
+
+			FinishConductorPlayback(playback);
+		}
+
+		private IEnumerator WaitUnpausedDelay(float delay)
+		{
+			float waitTime = 0f;
+			while (waitTime < delay) {
+				yield return null;
+
+				if (!IsPaused) {
+					waitTime += Time.unscaledDeltaTime;
+				}
+			}
+		}
+
+		private void FinishConductorPlayback(AudioPlayback playback)
+		{
 			// Signal that conductor finished playing (which doesn't mean the audio finished).
 			playback.HasConductorFinished = true;
 			if (!playback.IsPlaying) {
@@ -1118,11 +1082,12 @@ namespace DevLocker.Audio
 		private void StartResourcePlayback(AudioResource resource, float delay, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = false;
-			playback.AudioSource.outputAudioMixerGroup = GetEffectiveOutputMixer();
-			playback.AudioSource.loop = GetEffectiveRepeatSettings().IsLoop;
-			playback.Repeat = GetEffectiveRepeatSettings();
+			playback.AudioSource.outputAudioMixerGroup = m_OutputMixer ? m_OutputMixer : (m_Template ? m_Template.outputAudioMixerGroup : null);
+			playback.AudioSource.loop = m_Repeat.IsLoop;
+			playback.Repeat = m_Repeat;
+			playback.ConductorStateScope = AudioPlayerAsset.ConductorsStateScope.PerPlayer;
 
-			playback.Template = GetEffectiveTemplate();
+			playback.Template = m_Template;
 			if (playback.Template) {
 				CopyAudioSourceDetails(playback.AudioSource, playback.Template);
 			} else {
@@ -1203,7 +1168,7 @@ namespace DevLocker.Audio
 				}
 #endif
 
-				playback = new AudioPlayback(this, source, m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
+				playback = new AudioPlayback(this, source, m_SourcesPoolMode, Time.unscaledTime);
 				m_ActivePlaybacks.Add(playback);
 
 				return playback;
@@ -1211,7 +1176,7 @@ namespace DevLocker.Audio
 
 			switch (m_SourcesPoolMode) {
 				case AudioSourcesPoolMode.PlayerObjectPool:
-					playback = new AudioPlayback(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
+					playback = new AudioPlayback(this, gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.PlayerChildPool:
@@ -1221,7 +1186,7 @@ namespace DevLocker.Audio
 						childContainer.SetParent(transform, worldPositionStays: false);
 					}
 
-					playback = new AudioPlayback(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
+					playback = new AudioPlayback(this, childContainer.gameObject.AddComponent<AudioSource>(), m_SourcesPoolMode, Time.unscaledTime);
 					break;
 
 				case AudioSourcesPoolMode.GlobalPool:
@@ -1229,7 +1194,7 @@ namespace DevLocker.Audio
 					if (AudioSourcesGlobalPool.Instance == null)
 						return null;
 					
-					playback = new AudioPlayback(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, m_Repeat, Time.unscaledTime);
+					playback = new AudioPlayback(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, Time.unscaledTime);
 					playback.AudioSource.transform.position = transform.position;   // Global pool sources are not children of this object, so we need to set their position manually.
 					break;
 
