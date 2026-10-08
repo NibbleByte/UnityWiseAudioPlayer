@@ -1,4 +1,3 @@
-using DevLocker.Audio.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -137,15 +136,15 @@ namespace DevLocker.Audio
 		/// Volume used when playing new sounds - will not affect already playing sounds.
 		/// </summary>
 		public float Volume { get => m_Volume; set => m_Volume = value; }
-		
+
 		/// <summary>
 		/// Object used by <see cref="AudioConductorFilter"/> as context.
 		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
 		/// </summary>
 		public object ConductorsFilterContext;
-		
+
 		#region Conductor State Helpers
-		
+
 		/// <summary>
 		/// Used by conductors to persist state per player between usages. For example: don't repeat last clip.
 		/// Try to use unique key names.
@@ -172,7 +171,7 @@ namespace DevLocker.Audio
 		{
 			m_ConductorsStateStorage[new AudioPlayback.ConductorStateKey(conductor, asset, keyName)] = value;
 		}
-		
+
 		/// <summary>
 		/// Set all conductor state values of given type that are saved on this player.
 		/// </summary>
@@ -180,25 +179,25 @@ namespace DevLocker.Audio
 		{
 			string assetName = asset ? asset.name : null;
 			ulong assetId = asset ? AudioPlayback.ConductorStateKey.GetId(asset) : 0;
-			
+
 			var matchedKeys = new List<AudioPlayback.ConductorStateKey>();
-			
+
 			foreach (var conductorKey in m_ConductorsStateStorage.Keys) {
 				if (conductorKey.KeyName == keyName &&
 					conductorType.IsAssignableFrom(conductorKey.ConductorType) &&
 					// No conductor id.
-					conductorKey.AssetName == assetName && 
+					conductorKey.AssetName == assetName &&
 					conductorKey.AssetId == assetId
 					) {
 					matchedKeys.Add(conductorKey);
 				}
 			}
-			
+
 			foreach (var key in matchedKeys) {
 				m_ConductorsStateStorage[key] = value;
 			}
 		}
-		
+
 		#endregion
 
 		/// <summary>
@@ -261,6 +260,7 @@ namespace DevLocker.Audio
 
 		private List<AudioPlayback> m_ActivePlaybacks = new List<AudioPlayback>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
+		private Dictionary<AudioSource, AudioSource> m_LastTemplatesUsed = new Dictionary<AudioSource, AudioSource>();  // Only for m_AudioSourcesPool sources.
 		private const string ChildPoolContainerName = "__AudioPlayerPool__";
 
 		// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
@@ -305,12 +305,12 @@ namespace DevLocker.Audio
 					GameObject.Destroy(source);
 				}
 			}
-			
+
 			var childContainer = transform.Find(ChildPoolContainerName);
 			if (childContainer) {
 				GameObject.Destroy(childContainer.gameObject);
 			}
-			
+
 			m_AudioSourcesPool.Clear();
 		}
 
@@ -409,7 +409,7 @@ namespace DevLocker.Audio
 			}
 
 			var playback = AcquireAudioPlayback();
-			
+
 			// Something went wrong, abort. Probably editor is quitting.
 			if (playback == null)
 				return null;
@@ -418,9 +418,9 @@ namespace DevLocker.Audio
 				var asset = audioReference.AudioAsset;
 				var settings = asset.Settings;
 				settings.Delay += delay;
-				
+
 				var conductorCoroutine = StartCoroutine(StartConductorsPlayback(settings, asset.Conductors, asset, playback));
-				
+
 				// We can get the coroutine after running it initially, but it may already have finished.
 				if (!playback.HasConductorFinished) {
 					playback.ConductorCoroutine = conductorCoroutine;
@@ -456,9 +456,9 @@ namespace DevLocker.Audio
 					Filters = Array.Empty<AudioConductorFilter>(),
 				}
 			};
-			
+
 			var conductorCoroutine = StartCoroutine(StartConductorsPlayback(settings, conductors, conductorAsset, playback));
-			
+
 			// We can get the coroutine after running it initially, but it may already have finished.
 			if (!playback.HasConductorFinished) {
 				playback.ConductorCoroutine = conductorCoroutine;
@@ -697,9 +697,9 @@ namespace DevLocker.Audio
 			if (InterruptionFadeDuration > 0f) {
 
 				bool anyFades = false;
-				
+
 				foreach (var playback in m_ActivePlaybacks) {
-					
+
 					if (playback.IsPlaying) {
 						playback.StopConductorCoroutine();
 						playback.HasConductorFinished = true;
@@ -732,11 +732,11 @@ namespace DevLocker.Audio
 
 					}
 				}
-				
+
 				if (!anyFades) {
 					destroyAction();
 				}
-				
+
 			} else {
 
 				while (m_ActivePlaybacks.Count > 0) {
@@ -925,11 +925,7 @@ namespace DevLocker.Audio
 			playback.ConductorStateScope = settings.StateScope;
 
 			playback.Template = settings.Template;
-			if (settings.Template) {
-				CopyAudioSourceDetails(playback.AudioSource, settings.Template);
-			} else {
-				ResetAudioSourceDetails(playback.AudioSource);
-			}
+			ApplyTemplate(playback, settings.Template);	// Skips copy if template is the same as last time.
 
 			if (settings.Delay > 0f) {
 				yield return WaitUnpausedDelay(settings.Delay);
@@ -1046,11 +1042,7 @@ namespace DevLocker.Audio
 			playback.ConductorStateScope = AudioPlaybackSettings.ConductorsStateScope.PerPlayer;
 
 			playback.Template = m_Template;
-			if (playback.Template) {
-				CopyAudioSourceDetails(playback.AudioSource, playback.Template);
-			} else {
-				ResetAudioSourceDetails(playback.AudioSource);
-			}
+			ApplyTemplate(playback, playback.Template); // Skips copy if template is the same as last time.
 
 			playback.AudioSource.resource = resource;
 
@@ -1151,7 +1143,7 @@ namespace DevLocker.Audio
 					// Editor is quitting, pool is gone.
 					if (AudioSourcesGlobalPool.Instance == null)
 						return null;
-					
+
 					playback = new AudioPlayback(this, AudioSourcesGlobalPool.Instance.AcquireAudioSource(), m_SourcesPoolMode, Time.unscaledTime);
 					playback.AudioSource.transform.position = transform.position;   // Global pool sources are not children of this object, so we need to set their position manually.
 					break;
@@ -1202,10 +1194,52 @@ namespace DevLocker.Audio
 			}
 
 			m_ActivePlaybacks.Remove(playback);
-			
+
 			// Prevent users from using this playback.
 			playback.Player = null;
 			playback.AudioSource = null;
+		}
+
+		// Applies template if not already applied (cached).
+		// Properties other than pitch and volume won't be set if same template was applied, so don't change them or they will leak.
+		private void ApplyTemplate(AudioPlayback playback, AudioSource template)
+		{
+			if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
+
+				if (!playback.AudioSource.TryGetComponent(out LastTemplateUsed lastTemplateComponent)) {
+					lastTemplateComponent = playback.AudioSource.gameObject.AddComponent<LastTemplateUsed>();
+				}
+
+				if (lastTemplateComponent.TemplateUsed != template) {
+					lastTemplateComponent.TemplateUsed = template;
+
+					if (template) {
+						CopyAudioSourceDetails(playback.AudioSource, template);
+					} else {
+						ResetAudioSourceDetails(playback.AudioSource);
+					}
+				}
+
+			} else {
+
+				m_LastTemplatesUsed.TryGetValue(playback.AudioSource, out AudioSource lastTemplate);
+				if (lastTemplate != template) {
+					m_LastTemplatesUsed[playback.AudioSource] = template;
+
+					if (template) {
+						CopyAudioSourceDetails(playback.AudioSource, template);
+					} else {
+						ResetAudioSourceDetails(playback.AudioSource);
+					}
+				}
+			}
+
+			playback.AudioSource.pitch = template ? template.pitch : 1f;
+		}
+
+		internal class LastTemplateUsed : MonoBehaviour
+		{
+			public AudioSource TemplateUsed;
 		}
 
 		public static void CopyAudioSource(AudioSource destination, AudioSource source)
@@ -1286,7 +1320,7 @@ namespace DevLocker.Audio
 			source.rolloffMode = AudioRolloffMode.Logarithmic;  // Because changing the curve changes this property to custom.
 																// Overrides the CustomRolloff curve, but the curve is still stored.
 		}
-		
+
 		private static readonly AnimationCurve s_ResetCurve_CustomRolloff = new AnimationCurve(new Keyframe(0, 1, 0, 0), new Keyframe(1, 0, 0, 0));
 		private static readonly AnimationCurve s_ResetCurve_SpatialBlend = new AnimationCurve(new Keyframe(0, 0));
 		private static readonly AnimationCurve s_ResetCurve_ReverbZoneMix = new AnimationCurve(new Keyframe(0, 1));
