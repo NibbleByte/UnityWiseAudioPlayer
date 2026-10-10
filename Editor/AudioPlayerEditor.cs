@@ -142,8 +142,8 @@ namespace DevLocker.Audio.Editor
 
 			EditorGUILayout.EndHorizontal();
 
-			if (Application.isPlaying && player.ConductorsFilterContext != null) {
-				if (player.ConductorsFilterContext is IEnumerable<KeyValuePair<string, object>> enumerableContext) {
+			if (Application.isPlaying && player.ConductorsConditionContext != null) {
+				if (player.ConductorsConditionContext is IEnumerable<KeyValuePair<string, object>> enumerableContext) {
 
 					m_ContextFolded = EditorGUILayout.Foldout(m_ContextFolded, "Context Values", toggleOnLabelClick: true);
 					if (m_ContextFolded) {

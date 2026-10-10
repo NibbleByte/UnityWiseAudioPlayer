@@ -25,13 +25,13 @@ MonoBehaviour:
   Conductors:
   - Conductor:
       rid: 8526195423432933562
-    Filters:
+    Conditions:
     - rid: 6878235911996309505
   references:
     version: 2
     RefIds:
     - rid: 6878235911996309505
-      type: {class: CooldownFilter, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CooldownCondition, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         CooldownSeconds: 2
     - rid: 8526195423432933562

@@ -15,8 +15,8 @@ public class SampleImpactTester : MonoBehaviour
 
 	public void OnImpactForceChanged(int force)
 	{
-		// Create context that the audio asset filters will read.
+		// Create context that the audio asset conditions will read.
 		var audioContext = DictionaryContext.Create("ImpactForce", force * 4);
-		AudioPlayer.ConductorsFilterContext = audioContext;
+		AudioPlayer.ConductorsConditionContext = audioContext;
 	}
 }

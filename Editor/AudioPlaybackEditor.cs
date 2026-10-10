@@ -55,8 +55,8 @@ namespace DevLocker.Audio.Editor
 		}
 	}
 
-	[CustomPropertyDrawer(typeof(AudioConductorFilter))]
-	public class AudioConductorFilterDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
+	[CustomPropertyDrawer(typeof(AudioCondition))]
+	public class AudioConditionDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
 
