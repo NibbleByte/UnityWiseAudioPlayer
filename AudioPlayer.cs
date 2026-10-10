@@ -1,3 +1,4 @@
+using DevLocker.Audio.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,9 +19,9 @@ namespace DevLocker.Audio
 	{
 		public enum AudioSourcesPoolMode
 		{
-			PlayerObjectPool,
-			PlayerChildPool,
-			GlobalPool,
+			PlayerObjectPool = 0,
+			PlayerChildPool = 2,
+			GlobalPool = 4,
 		}
 
 		/// <summary>
@@ -218,9 +219,10 @@ namespace DevLocker.Audio
 		[Tooltip("Each sound that overlaps an already playing one gets its own AudioSource. Sources are reused once they finish.\n\n" +
 			"Where to create these AudioSources:\n" +
 			"- " + nameof(AudioSourcesPoolMode.PlayerObjectPool) + ": on this object\n" +
-			"- " + nameof(AudioSourcesPoolMode.PlayerChildPool) + ": on a child object\n" +
-			"- " + nameof(AudioSourcesPoolMode.GlobalPool) + ": on a shared pool object\n\n" +
-			"Sounds on this object or a child stop as soon as it's destroyed. Use the global pool to let them finish (looping sounds are still stopped).")]
+			"- " + nameof(AudioSourcesPoolMode.PlayerChildPool) + ": on a child shared object\n" +
+			"- " + nameof(AudioSourcesPoolMode.GlobalPool) + ": on a global pool object per source\n\n" +
+			"Sounds on this object or a child stop as soon as it's destroyed. Use the global pool to let them finish (looping sounds are still stopped).\n" +
+			"If your template prefab has audio filters attached you must use " + nameof(AudioSourcesPoolMode.GlobalPool) + " as it offers one object per source.")]
 		private AudioSourcesPoolMode m_SourcesPoolMode;
 
 		[SerializeField]
@@ -233,7 +235,7 @@ namespace DevLocker.Audio
 		private AudioMixerGroup m_OutputMixer;
 
 		[SerializeField]
-		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to each new sound.\n\nOverridden by the audio asset's template.")]
+		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.\nYou can have audio filter components attached too, but the player must use " + nameof(AudioSourcesPoolMode.GlobalPool) + " as pool mode!")]
 		private AudioSource m_Template;
 
 		[SerializeField]
@@ -261,6 +263,7 @@ namespace DevLocker.Audio
 		private List<AudioPlayback> m_ActivePlaybacks = new List<AudioPlayback>();
 		private Queue<AudioSource> m_AudioSourcesPool = new Queue<AudioSource>();
 		private Dictionary<AudioSource, AudioSource> m_LastTemplatesUsed = new Dictionary<AudioSource, AudioSource>();  // Only for m_AudioSourcesPool sources.
+		private static readonly Dictionary<Type, bool> s_IsCustomFilterType = new Dictionary<Type, bool>();
 		private const string ChildPoolContainerName = "__AudioPlayerPool__";
 
 		// Can't have global 3D object and reuse it as moving it will affect all the currently played sounds as well.
@@ -295,6 +298,8 @@ namespace DevLocker.Audio
 				var playback = m_ActivePlaybacks.Last();
 				ReleaseAudioPlayback(playback, stopSource: playback.AudioSource && playback.AudioSource.loop);
 			}
+
+			m_LastTemplatesUsed.Clear();
 		}
 
 		protected virtual void OnDestroy()
@@ -1200,130 +1205,171 @@ namespace DevLocker.Audio
 			playback.AudioSource = null;
 		}
 
+		/// <summary>
+		/// Remove the used template from the cache for this playback.
+		/// Call this when you change the audio source details after template was applied.
+		/// </summary>
+		public void ForgetUsedTemplate(AudioPlayback playback)
+		{
+			if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
+				var lastTemplateComponent = playback.AudioSource.GetComponent<LastTemplateUsed>();
+				if (lastTemplateComponent) {
+					foreach (var addedComponent in lastTemplateComponent.AddedFilterComponents) {
+						GameObject.DestroyImmediate(addedComponent);
+					}
+					GameObject.DestroyImmediate(lastTemplateComponent);
+				}
+
+			} else {
+				m_LastTemplatesUsed.Remove(playback.AudioSource);
+			}
+		}
+
 		// Applies template if not already applied (cached).
 		// Properties other than pitch and volume won't be set if same template was applied, so don't change them or they will leak.
 		private void ApplyTemplate(AudioPlayback playback, AudioSource template)
 		{
+			var destination = playback.AudioSource;
+			bool doCopy = false;
+			LastTemplateUsed lastTemplateComponent = null;
+
 			if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
 
-				if (!playback.AudioSource.TryGetComponent(out LastTemplateUsed lastTemplateComponent)) {
-					lastTemplateComponent = playback.AudioSource.gameObject.AddComponent<LastTemplateUsed>();
-				}
-
-				if (lastTemplateComponent.TemplateUsed != template) {
-					lastTemplateComponent.TemplateUsed = template;
-
-					if (template) {
-						CopyAudioSourceDetails(playback.AudioSource, template);
-					} else {
-						ResetAudioSourceDetails(playback.AudioSource);
+				if (playback.AudioSource.TryGetComponent(out lastTemplateComponent)) {
+					if (lastTemplateComponent.TemplateUsed != template) {
+						lastTemplateComponent.TemplateUsed = template;
+						doCopy = true;
 					}
+
+				} else {
+					lastTemplateComponent = playback.AudioSource.gameObject.AddComponent<LastTemplateUsed>();
+					lastTemplateComponent.TemplateUsed = template;
+					doCopy = true;
 				}
+
 
 			} else {
 
-				m_LastTemplatesUsed.TryGetValue(playback.AudioSource, out AudioSource lastTemplate);
-				if (lastTemplate != template) {
+				if (!m_LastTemplatesUsed.TryGetValue(playback.AudioSource, out AudioSource lastTemplate) || lastTemplate != template) {
 					m_LastTemplatesUsed[playback.AudioSource] = template;
 
-					if (template) {
-						CopyAudioSourceDetails(playback.AudioSource, template);
-					} else {
-						ResetAudioSourceDetails(playback.AudioSource);
+					doCopy = true;
+				}
+			}
+
+			bool isSelectedInEditor = false;
+#if UNITY_EDITOR
+			isSelectedInEditor = template && UnityEditor.Selection.activeGameObject == template.gameObject;
+#endif
+
+			if (doCopy || isSelectedInEditor) {
+
+				if (template) {
+					AudioCopyUtils.CopyAudioSourceDetails(destination, template);
+
+					// Can't have filters on object with multiple audio sources, so only global pool is supporting them, as it uses one-object-per-source.
+					if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
+
+						foreach(var component in lastTemplateComponent.AddedFilterComponents) {
+							GameObject.DestroyImmediate(component);
+						}
+						lastTemplateComponent.AddedFilterComponents.Clear();
+
+
+						foreach (var component in template.GetComponents<Behaviour>()) {
+
+							if (component is AudioSource)
+								continue;
+
+							if (TryCopyAudioFilter<AudioChorusFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+							if (TryCopyAudioFilter<AudioDistortionFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+							if (TryCopyAudioFilter<AudioEchoFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+							if (TryCopyAudioFilter<AudioHighPassFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+							if (TryCopyAudioFilter<AudioLowPassFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+							if (TryCopyAudioFilter<AudioReverbFilter>(destination, component, lastTemplateComponent, AudioCopyUtils.CopyAudioFilter)) continue;
+
+							var componentType = component.GetType();
+							if (IsCustomAudioFilter(componentType)) {
+								var destinationCustomFilterComponent = (Behaviour) destination.GetComponent(componentType);
+								if (destinationCustomFilterComponent == null) {
+									destinationCustomFilterComponent = (Behaviour) destination.gameObject.AddComponent(componentType);
+								}
+
+								var json = JsonUtility.ToJson(component);
+								JsonUtility.FromJsonOverwrite(json, destinationCustomFilterComponent);
+								destinationCustomFilterComponent.enabled = component.enabled;
+
+								lastTemplateComponent.AddedFilterComponents.Add(destinationCustomFilterComponent);
+							}
+						}
+					}
+
+				} else {
+					// No Template
+
+					AudioCopyUtils.ResetAudioSourceDetails(destination);
+
+					// Can't have filters on object with multiple audio sources, so only global pool is supporting them, as it uses one-object-per-source.
+					if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
+
+						foreach (var component in lastTemplateComponent.AddedFilterComponents) {
+							GameObject.DestroyImmediate(component);
+						}
+						lastTemplateComponent.AddedFilterComponents.Clear();
 					}
 				}
 			}
 
 			playback.AudioSource.pitch = template ? template.pitch : 1f;
+
+			#region Helper functions
+
+			bool TryCopyAudioFilter<FilterType>(AudioSource destination, Behaviour component, LastTemplateUsed lastTemplateComponent, Action<FilterType, FilterType> copyMethod) where FilterType : Behaviour
+			{
+				if (component is FilterType filterComponent) {
+					var destinationFilter = destination.GetComponent<FilterType>();
+					if (destinationFilter == null) {
+						destinationFilter = destination.gameObject.AddComponent<FilterType>();
+					}
+
+					lastTemplateComponent.AddedFilterComponents.Add(destinationFilter);
+					copyMethod(destinationFilter, filterComponent);
+					destinationFilter.enabled = filterComponent.enabled;
+
+					return true;
+				}
+
+				return false;
+			}
+
+			bool IsCustomAudioFilter(Type type)
+			{
+				if (!s_IsCustomFilterType.TryGetValue(type, out bool isFilter)) {
+					var flags = System.Reflection.BindingFlags.Instance |
+					            System.Reflection.BindingFlags.Public |
+					            System.Reflection.BindingFlags.NonPublic |
+					            System.Reflection.BindingFlags.DeclaredOnly
+					            ;
+
+					// Traverse the parents as we use DeclaredOnly because private methods won't be found if declared in the base class.
+					for (var t = type; t != null && t != typeof(MonoBehaviour); t = t.BaseType) {
+						if (t.GetMethod("OnAudioFilterRead", flags) != null) {
+							isFilter = true;
+							break;
+						}
+					}
+					s_IsCustomFilterType[type] = isFilter;
+				}
+				return isFilter;
+			}
+
+			#endregion
 		}
 
 		internal class LastTemplateUsed : MonoBehaviour
 		{
 			public AudioSource TemplateUsed;
+			public List<Component> AddedFilterComponents = new List<Component>();
 		}
-
-		public static void CopyAudioSource(AudioSource destination, AudioSource source)
-		{
-			destination.playOnAwake = source.playOnAwake;
-			destination.resource = source.resource;
-			destination.outputAudioMixerGroup = source.outputAudioMixerGroup;
-			destination.loop = source.loop;
-			destination.volume = source.volume;
-
-			CopyAudioSourceDetails(destination, source);
-		}
-
-		public static void CopyAudioSourceDetails(AudioSource destination, AudioSource source)
-		{
-			destination.bypassEffects = source.bypassEffects;
-			destination.bypassListenerEffects = source.bypassListenerEffects;
-			destination.bypassReverbZones = source.bypassReverbZones;
-			destination.priority = source.priority;
-			destination.pitch = source.pitch;
-			destination.panStereo = source.panStereo;
-			//destination.spatialBlend = source.spatialBlend;		// Represents curve with 1 point, set below.
-			destination.spatializePostEffects = source.spatializePostEffects;
-			//destination.reverbZoneMix = source.reverbZoneMix;		// Represents curve with 1 point, set below.
-
-			destination.dopplerLevel = source.dopplerLevel;
-			//destination.spread = source.spread;					// Represents curve with 1 point, set below.
-			destination.minDistance = source.minDistance;
-			destination.maxDistance = source.maxDistance;
-			destination.SetCustomCurve(AudioSourceCurveType.CustomRolloff, source.GetCustomCurve(AudioSourceCurveType.CustomRolloff));
-			destination.SetCustomCurve(AudioSourceCurveType.SpatialBlend, source.GetCustomCurve(AudioSourceCurveType.SpatialBlend));
-			destination.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, source.GetCustomCurve(AudioSourceCurveType.ReverbZoneMix));
-			destination.SetCustomCurve(AudioSourceCurveType.Spread, source.GetCustomCurve(AudioSourceCurveType.Spread));
-			destination.rolloffMode = source.rolloffMode; // Because changing the curve changes this property to custom.
-		}
-
-		/// <summary>
-		/// Reset audio source to the default values as if it was just created in the Inspector editor.
-		/// </summary>
-		public static void ResetAudioSource(AudioSource source)
-		{
-			source.playOnAwake = false;
-			source.resource = null;
-			source.outputAudioMixerGroup = null;
-			source.loop = false;
-			source.volume = 1f;
-			source.mute = false;
-
-			ResetAudioSourceDetails(source);
-		}
-
-		/// <summary>
-		/// Reset audio source to the default values as if it was just created in the Inspector editor.
-		/// </summary>
-		public static void ResetAudioSourceDetails(AudioSource source)
-		{
-			// These were reverse-engineered from the default values of a new AudioSource component in the Inspector editor (in debug mode).
-
-			source.bypassEffects = false;
-			source.bypassListenerEffects = false;
-			source.bypassReverbZones = false;
-			source.priority = 128;
-			source.pitch = 1f;
-			source.panStereo = 0f;
-			//source.spatialBlend = 0f;		// Represents curve with 1 point, set below.
-			source.spatializePostEffects = false;
-			//source.reverbZoneMix = 1f;	// Represents curve with 1 point, set below.
-
-			source.dopplerLevel = 1f;
-			//source.spread = 0f;			// Represents curve with 1 point, set below.
-			source.minDistance = 1f;
-			source.maxDistance = 500f;
-			source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, s_ResetCurve_CustomRolloff);
-			source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, s_ResetCurve_SpatialBlend);
-			source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, s_ResetCurve_ReverbZoneMix);
-			source.SetCustomCurve(AudioSourceCurveType.Spread, s_ResetCurve_Spread);
-
-			source.rolloffMode = AudioRolloffMode.Logarithmic;  // Because changing the curve changes this property to custom.
-																// Overrides the CustomRolloff curve, but the curve is still stored.
-		}
-
-		private static readonly AnimationCurve s_ResetCurve_CustomRolloff = new AnimationCurve(new Keyframe(0, 1, 0, 0), new Keyframe(1, 0, 0, 0));
-		private static readonly AnimationCurve s_ResetCurve_SpatialBlend = new AnimationCurve(new Keyframe(0, 0));
-		private static readonly AnimationCurve s_ResetCurve_ReverbZoneMix = new AnimationCurve(new Keyframe(0, 1));
-		private static readonly AnimationCurve s_ResetCurve_Spread = new AnimationCurve(new Keyframe(0, 0));
 	}
 }
