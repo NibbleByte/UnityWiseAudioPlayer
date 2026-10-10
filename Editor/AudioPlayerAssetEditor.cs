@@ -1,15 +1,28 @@
+using System.Collections.Generic;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace DevLocker.Audio.Utils.Editor
 {
 	/// <summary>
 	/// Draws the <see cref="AudioPlayerAsset.Settings"/> members inline, as if they were members of the asset itself (no foldout).
+	/// If a template is assigned, its components (AudioSource and filters) are drawn at the bottom, so they can be tweaked in place.
 	/// </summary>
 	[CustomEditor(typeof(AudioPlayerAsset), true)]
 	[CanEditMultipleObjects]
 	internal class AudioPlayerAssetEditor : UnityEditor.Editor
 	{
+		private const string TemplateFoldoutKey = "WiseAudioPlayer.AudioPlayerAssetEditor.TemplateFoldout";
+
+		private readonly List<UnityEditor.Editor> m_TemplateEditors = new List<UnityEditor.Editor>();
+		private AudioSource m_TemplateEditorsSource;
+
+		private void OnDisable()
+		{
+			ClearTemplateEditors();
+		}
+
 		public override void OnInspectorGUI()
 		{
 			serializedObject.Update();
@@ -34,6 +47,9 @@ namespace DevLocker.Audio.Utils.Editor
 				EditorGUILayout.PropertyField(property, true);
 			}
 
+			// Draw at the bottom, as they can be quite long.
+			DrawTemplateComponents(serializedObject.FindProperty(nameof(AudioPlayerAsset.Settings) + "." + nameof(AudioPlaybackSettings.Template)));
+
 			serializedObject.ApplyModifiedProperties();
 		}
 
@@ -51,6 +67,85 @@ namespace DevLocker.Audio.Utils.Editor
 				if (!child.NextVisible(false))
 					break;
 			}
+		}
+
+		private void DrawTemplateComponents(SerializedProperty templateProperty)
+		{
+			// Multi-selection with different templates - nothing sensible to show.
+			AudioSource template = templateProperty.hasMultipleDifferentValues ? null : templateProperty.objectReferenceValue as AudioSource;
+			if (template == null) {
+				ClearTemplateEditors();
+				return;
+			}
+
+			RefreshTemplateEditors(template);
+
+			EditorGUILayout.Space();
+			bool foldout = SessionState.GetBool(TemplateFoldoutKey, true);
+			bool newFoldout = EditorGUILayout.Foldout(foldout, new GUIContent("Template Components", "Components of the template object. Changes are applied to the template itself and affect everyone using it."), toggleOnLabelClick: true);
+			if (newFoldout != foldout) {
+				SessionState.SetBool(TemplateFoldoutKey, newFoldout);
+			}
+
+			if (!newFoldout)
+				return;
+
+			using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox)) {
+				foreach (UnityEditor.Editor editor in m_TemplateEditors) {
+					if (editor == null || editor.target == null)
+						continue;
+
+					bool expanded = InternalEditorUtility.GetIsInspectorExpanded(editor.target);
+					bool newExpanded = EditorGUILayout.InspectorTitlebar(expanded, editor);
+					if (newExpanded != expanded) {
+						InternalEditorUtility.SetIsInspectorExpanded(editor.target, newExpanded);
+					}
+
+					if (newExpanded) {
+						editor.OnInspectorGUI();
+						EditorGUILayout.Space(2f);
+					}
+				}
+			}
+		}
+
+		private void RefreshTemplateEditors(AudioSource template)
+		{
+			var components = new List<Component>();
+			foreach (Component component in template.GetComponents<Component>()) {
+				// Missing scripts are null. Transform is irrelevant for audio.
+				if (component == null || component is Transform)
+					continue;
+
+				components.Add(component);
+			}
+
+			bool upToDate = m_TemplateEditorsSource == template && m_TemplateEditors.Count == components.Count;
+			for (int i = 0; upToDate && i < components.Count; ++i) {
+				upToDate = m_TemplateEditors[i] != null && m_TemplateEditors[i].target == components[i];
+			}
+
+			if (upToDate)
+				return;
+
+			ClearTemplateEditors();
+
+			m_TemplateEditorsSource = template;
+			foreach (Component component in components) {
+				m_TemplateEditors.Add(CreateEditor(component));
+			}
+		}
+
+		private void ClearTemplateEditors()
+		{
+			foreach (UnityEditor.Editor editor in m_TemplateEditors) {
+				if (editor) {
+					DestroyImmediate(editor);
+				}
+			}
+
+			m_TemplateEditors.Clear();
+			m_TemplateEditorsSource = null;
 		}
 	}
 
