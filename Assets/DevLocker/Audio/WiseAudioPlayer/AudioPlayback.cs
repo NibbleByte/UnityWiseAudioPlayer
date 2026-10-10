@@ -84,7 +84,7 @@ namespace DevLocker.Audio
 		[Tooltip("Mixer group to output to. Overrides the AudioPlayer's mixer. If empty, uses the template's mixer.")]
 		public AudioMixerGroup OutputMixer;
 
-		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.")]
+		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.\nYou can have audio filter components attached too, but the player must use " + nameof(AudioPlayer.AudioSourcesPoolMode.GlobalPool) + " as pool mode!")]
 		public AudioSource Template;
 
 		/// <summary>
@@ -281,8 +281,8 @@ namespace DevLocker.Audio
 				if (conductorKey.KeyName == keyName &&
 				    conductorType.IsAssignableFrom(conductorKey.ConductorType) &&
 					// No conductor id.
-					conductorKey.AssetName == assetName && 
-				    conductorKey.AssetId == assetId 
+					conductorKey.AssetName == assetName &&
+				    conductorKey.AssetId == assetId
 				    ) {
 					matchedKeys.Add(conductorKey);
 				}
@@ -327,12 +327,12 @@ namespace DevLocker.Audio
 			}
 
 			public bool Equals(ConductorStateKey other)
-				=> KeyName == other.KeyName && 
-				   
-				   ConductorType == other.ConductorType && 
-				   ConductorId == other.ConductorId && 
-				   
-				   AssetName == other.AssetName && 
+				=> KeyName == other.KeyName &&
+
+				   ConductorType == other.ConductorType &&
+				   ConductorId == other.ConductorId &&
+
+				   AssetName == other.AssetName &&
 				   AssetId == other.AssetId
 				   ;
 
