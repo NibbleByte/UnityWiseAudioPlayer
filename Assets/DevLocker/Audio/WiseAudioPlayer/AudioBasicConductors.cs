@@ -9,6 +9,68 @@ using UnityEngine.Audio;
 namespace DevLocker.Audio.Conductors
 {
 	[Serializable]
+	public class SequenceConductor : AudioConductor
+	{
+		[Tooltip("Run each conductor after the last one has finished.")]
+		[SerializeReference]
+		public AudioConductor[] Conductors;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			foreach(AudioConductor conductor in Conductors) {
+				if (conductor == null) {
+					Debug.LogWarning($"Missing conductor in sequence for \"{playback.DebugContext}\".", playback.DebugContext);
+					continue;
+				}
+
+				playback.Conductor = conductor;
+				yield return conductor.Play(playback);
+				playback.Conductor = this;
+
+				// Wait for the sound to finish before moving on.
+				while (playback.AudioSource && (playback.AudioSource.isPlaying || playback.IsPaused))
+					yield return null;
+			}
+		}
+
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			base.OnValidate(context);
+
+			foreach (AudioConductor conductor in Conductors) {
+				conductor?.OnValidate(context);
+			}
+		}
+	}
+
+	[Serializable]
+	public class SilenceConductor : AudioConductor
+	{
+		[Tooltip("Silence duration in seconds.")]
+		public float Duration = 1.0f;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			float waited = 0f;
+			while (waited < Duration) {
+				yield return null;
+				if (!playback.IsPaused)
+					waited += Time.unscaledDeltaTime;
+			}
+		}
+
+#if UNITY_EDITOR
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			if (Duration < 0.0f) {
+				Duration = 0.0f;
+				UnityEditor.EditorUtility.SetDirty(context);
+			}
+		}
+#endif
+	}
+
+	[Serializable]
 	public class PlayAudioConductor : AudioConductor
 	{
 		public ClipWithVolumePitch AudioClip;

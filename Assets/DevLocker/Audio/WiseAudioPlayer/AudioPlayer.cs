@@ -1259,7 +1259,7 @@ namespace DevLocker.Audio
 
 			bool isSelectedInEditor = false;
 #if UNITY_EDITOR
-			isSelectedInEditor = template && (UnityEditor.Selection.activeGameObject == template.gameObject || UnityEditor.Selection.activeObject is AudioPlayerAsset);
+			isSelectedInEditor = template && (UnityEditor.Selection.activeGameObject == template.gameObject || UnityEditor.Selection.activeObject is AudioPlayerAsset selectedAsset && selectedAsset.Settings.Template == template);
 #endif
 
 			if (doCopy || isSelectedInEditor) {
