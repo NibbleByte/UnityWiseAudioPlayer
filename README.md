@@ -39,7 +39,7 @@ The `AudioPlayerAsset` serves as an audio proxy that lets you easily change what
 
 When the asset is played, its settings (repeat, interrupt mode, delay, output mixer, template and state scope) override the ones on the `AudioPlayer`.
 
-The asset offers you a list of `Conductors`. Each conductor has a filter that checks whether it should be played, and only the first allowed one is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
+The asset offers you a list of `Conductors`. Each conductor has conditions that check whether it should be played, and only the first one whose conditions all pass is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
 - `PlayCollectionAudioConductor` - plays a sound picked from a list. Can play them in sequential, shuffle, or random order.
 - `PlayPitchSequenceConductor` - plays the same sound every time, but changes the pitch according to your settings.
 - `IntroThenLoopConductor` - plays an intro sound then loops another. Useful for music.

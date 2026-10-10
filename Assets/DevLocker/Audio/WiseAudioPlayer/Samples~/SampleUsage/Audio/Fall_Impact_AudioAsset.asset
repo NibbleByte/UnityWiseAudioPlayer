@@ -25,16 +25,16 @@ MonoBehaviour:
   Conductors:
   - Conductor:
       rid: 8526195024085123077
-    Filters:
+    Conditions:
     - rid: 8526195024085123078
   - Conductor:
       rid: 8526195024085123079
-    Filters:
+    Conditions:
     - rid: 8526195024085123080
     - rid: 8526195024085123081
   - Conductor:
       rid: 8526195024085123082
-    Filters:
+    Conditions:
     - rid: 8526195024085123083
   references:
     version: 2

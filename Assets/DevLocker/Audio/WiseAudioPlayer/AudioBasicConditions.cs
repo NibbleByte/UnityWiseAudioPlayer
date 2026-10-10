@@ -3,13 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DevLocker.Audio.Conductors
 {
 	#region Timing Predicates
 
 	[Serializable]
-	public class CooldownFilter : AudioConductorFilter
+	[UnityEngine.Scripting.APIUpdating.MovedFrom(false, sourceClassName: "CooldownFilter")]
+	public class CooldownCondition : AudioCondition
 	{
 		[Tooltip("Minimum seconds since this player last started any sound.")]
 		public float CooldownSeconds = 0.1f;
@@ -39,7 +41,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareInt : AudioConductorFilter
+	public class CompareInt : AudioCondition
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -74,7 +76,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareFloat : AudioConductorFilter
+	public class CompareFloat : AudioCondition
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -109,7 +111,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareBool : AudioConductorFilter
+	public class CompareBool : AudioCondition
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -134,7 +136,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareString : AudioConductorFilter
+	public class CompareString : AudioCondition
 	{
 		public enum StringCompareType
 		{
@@ -186,7 +188,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	[Serializable]
-	public class CompareAssetReferences : AudioConductorFilter
+	public class CompareAssetReferences : AudioCondition
 	{
 		[Tooltip("Key name to get the value from the context")]
 		public string KeyName;
@@ -219,30 +221,33 @@ namespace DevLocker.Audio.Conductors
 	#region Logical Predicates
 
 	[Serializable]
-	public class Logical_OR : AudioConductorFilter
+	public class Logical_OR : AudioCondition
 	{
 		[SerializeReference]
-		public List<AudioConductorFilter> OrFilters;
+		[FormerlySerializedAs("OrFilters")]
+		public List<AudioCondition> OrConditions;
 
-		public override bool IsAllowed(object context, AudioPlayback playback) => OrFilters.Any(filter => filter.IsAllowed(context, playback));
+		public override bool IsAllowed(object context, AudioPlayback playback) => OrConditions.Any(condition => condition.IsAllowed(context, playback));
 	}
 
 	[Serializable]
-	public class Logical_AND : AudioConductorFilter
+	public class Logical_AND : AudioCondition
 	{
 		[SerializeReference]
-		public List<AudioConductorFilter> AndFilters;
+		[FormerlySerializedAs("AndFilters")]
+		public List<AudioCondition> AndConditions;
 
-		public override bool IsAllowed(object context, AudioPlayback playback) => AndFilters.All(filter => filter.IsAllowed(context, playback));
+		public override bool IsAllowed(object context, AudioPlayback playback) => AndConditions.All(condition => condition.IsAllowed(context, playback));
 	}
 
 	[Serializable]
-	public class Logical_NOT : AudioConductorFilter
+	public class Logical_NOT : AudioCondition
 	{
 		[SerializeReference]
-		public AudioConductorFilter NotFilter;
+		[FormerlySerializedAs("NotFilter")]
+		public AudioCondition NotCondition;
 
-		public override bool IsAllowed(object context, AudioPlayback playback) => !NotFilter.IsAllowed(context, playback);
+		public override bool IsAllowed(object context, AudioPlayback playback) => !NotCondition.IsAllowed(context, playback);
 	}
 
 	#endregion
@@ -250,7 +255,7 @@ namespace DevLocker.Audio.Conductors
 	#region Basic Context
 
 	/// <summary>
-	/// Your audio context can implement this to be compatible with some of the basic filters.
+	/// Your audio context can implement this to be compatible with some of the basic conditions.
 	/// </summary>
 	public interface IValuesContainer
 	{
@@ -258,7 +263,7 @@ namespace DevLocker.Audio.Conductors
 	}
 
 	/// <summary>
-	/// Use this as your audio context so it is compatible with some of the basic filters.
+	/// Use this as your audio context so it is compatible with some of the basic conditions.
 	/// </summary>
 	public class DictionaryContext : Dictionary<string, object>, IValuesContainer
 	{

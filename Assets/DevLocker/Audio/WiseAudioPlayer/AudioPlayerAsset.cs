@@ -5,7 +5,7 @@ using UnityEngine;
 namespace DevLocker.Audio
 {
 	/// <summary>
-	/// Asset used by the <see cref="AudioPlayer"/> to play sound in a specific way with given filters.
+	/// Asset used by the <see cref="AudioPlayer"/> to play sound in a specific way, picking a conductor by its conditions.
 	/// </summary>
 	[CreateAssetMenu(fileName = "Unknown_AudioAsset", menuName = "Audio/Audio Player Asset")]
 	public class AudioPlayerAsset : ScriptableObject
@@ -24,7 +24,7 @@ namespace DevLocker.Audio
 		[Tooltip("Settings used when playing this asset.")]
 		public AudioPlaybackSettings Settings;
 
-		public FilteredConductor[] Conductors;
+		public ConditionalConductor[] Conductors;
 
 		void OnValidate()
 		{
@@ -35,8 +35,8 @@ namespace DevLocker.Audio
 			foreach (var conductorEntry in Conductors) {
 				conductorEntry.Conductor?.OnValidate(this);
 
-				foreach(var filter in conductorEntry.Filters) {
-					filter?.OnValidate(this);
+				foreach(var condition in conductorEntry.Conditions) {
+					condition?.OnValidate(this);
 				}
 			}
 		}

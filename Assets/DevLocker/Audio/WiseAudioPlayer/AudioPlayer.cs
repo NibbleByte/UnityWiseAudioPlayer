@@ -139,10 +139,10 @@ namespace DevLocker.Audio
 		public float Volume { get => m_Volume; set => m_Volume = value; }
 
 		/// <summary>
-		/// Object used by <see cref="AudioConductorFilter"/> as context.
+		/// Object used by <see cref="AudioCondition"/> as context.
 		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
 		/// </summary>
-		public object ConductorsFilterContext;
+		public object ConductorsConditionContext;
 
 		#region Conductor State Helpers
 
@@ -396,7 +396,7 @@ namespace DevLocker.Audio
 
 		/// <summary>
 		/// Play a conductor directly. Providing asset is preferable but optional.
-		/// Useful if you keep conductors in your own assets and do the filtering yourself.
+		/// Useful if you keep conductors in your own assets and pick the conductor yourself (no conditions are checked).
 		/// Uses only the provided <paramref name="settings"/> - player's template, output mixer and repeat settings are NOT used.
 		/// </summary>
 		public AudioPlayback PlayConductor(AudioPlaybackSettings settings, AudioConductor conductor, UnityEngine.Object conductorAsset)
@@ -455,10 +455,10 @@ namespace DevLocker.Audio
 			if (playback == null)
 				return null;
 
-			FilteredConductor[] conductors = new []{
-				new FilteredConductor(){
+			ConditionalConductor[] conductors = new []{
+				new ConditionalConductor(){
 					Conductor = conductor,
-					Filters = Array.Empty<AudioConductorFilter>(),
+					Conditions = Array.Empty<AudioCondition>(),
 				}
 			};
 
@@ -918,9 +918,9 @@ namespace DevLocker.Audio
 		#endregion
 
 		/// <summary>
-		/// Plays an asset (selecting a conductor by its filters) or a standalone conductor with the given settings.
+		/// Plays an asset (selecting a conductor by its conditions) or a standalone conductor with the given settings.
 		/// </summary>
-		private IEnumerator StartConductorsPlayback(AudioPlaybackSettings settings, FilteredConductor[] conductors, UnityEngine.Object conductorAsset, AudioPlayback playback)
+		private IEnumerator StartConductorsPlayback(AudioPlaybackSettings settings, ConditionalConductor[] conductors, UnityEngine.Object conductorAsset, AudioPlayback playback)
 		{
 			playback.IsUsingConductors = true;
 			playback.ConductorAsset = conductorAsset;
@@ -959,7 +959,7 @@ namespace DevLocker.Audio
 			do {
 				customLoop = false;
 
-				var conductor = conductors.FirstOrDefault(entry => entry.Filters.All(f => f?.IsAllowed(ConductorsFilterContext, playback) ?? true)).Conductor;
+				var conductor = conductors.FirstOrDefault(entry => entry.Conditions.All(c => c?.IsAllowed(ConductorsConditionContext, playback) ?? true)).Conductor;
 				if (conductor != null) {
 
 					// If conductor has custom logic other than just playing a looped sound,

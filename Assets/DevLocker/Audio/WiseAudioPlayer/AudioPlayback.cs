@@ -128,10 +128,10 @@ namespace DevLocker.Audio
 	}
 
 	/// <summary>
-	/// Used as filters when choosing which conductor to play.
+	/// Condition that decides whether its conductor can be played. See <see cref="ConditionalConductor"/>.
 	/// </summary>
 	[Serializable]
-	public abstract class AudioConductorFilter
+	public abstract class AudioCondition
 	{
 		public abstract bool IsAllowed(object context, AudioPlayback playback);
 
@@ -139,15 +139,15 @@ namespace DevLocker.Audio
 	}
 
 	[Serializable]
-	public struct FilteredConductor
+	public struct ConditionalConductor
 	{
 		[Tooltip("Responsible for playing the desired audio.")]
 		[SerializeReference]
 		public AudioConductor Conductor;
 
-		[Tooltip("All filters must pass for this conductor to be used. The first conductor whose filters all pass is played.")]
+		[Tooltip("All conditions must pass for this conductor to be used. The first conductor whose conditions all pass is played.")]
 		[SerializeReference]
-		public AudioConductorFilter[] Filters;
+		public AudioCondition[] Conditions;
 	}
 
 	/// <summary>

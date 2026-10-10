@@ -95,11 +95,11 @@ namespace DevLocker.Audio.Utils.Editor
 					AudioClip clip = null;
 
 					var assetSO = new SerializedObject(property.objectReferenceValue);
-					var filteredConductorsProperty = assetSO.FindProperty(nameof(AudioPlayerAsset.Conductors));
-					if (filteredConductorsProperty.arraySize == 0)
+					var conditionalConductorsProperty = assetSO.FindProperty(nameof(AudioPlayerAsset.Conductors));
+					if (conditionalConductorsProperty.arraySize == 0)
 						return;
 
-					var conductorProperty = filteredConductorsProperty.GetArrayElementAtIndex(0).FindPropertyRelative(nameof(FilteredConductor.Conductor));
+					var conductorProperty = conditionalConductorsProperty.GetArrayElementAtIndex(0).FindPropertyRelative(nameof(ConditionalConductor.Conductor));
 
 					// Try to guess the conductor's name. It depends on the implementation.
 					SerializedProperty audioClipProperty =
