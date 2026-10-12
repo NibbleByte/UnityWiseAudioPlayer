@@ -10,7 +10,6 @@ namespace DevLocker.Audio.Conductors
 	#region Timing Predicates
 
 	[Serializable]
-	[UnityEngine.Scripting.APIUpdating.MovedFrom(false, sourceClassName: "CooldownFilter")]
 	public class CooldownCondition : AudioCondition
 	{
 		[Tooltip("Minimum seconds since this player last started any sound.")]
@@ -365,6 +364,17 @@ namespace DevLocker.Audio.Conductors
 				return true;
 			} else {
 				value = false;
+				return false;
+			}
+		}
+
+		public static bool TryGetValue<T>(this IValuesContainer values, string key, out T value)
+		{
+			if (values.TryGetValue(key, out object objValue)) {
+				value = (T) objValue;
+				return true;
+			} else {
+				value = default;
 				return false;
 			}
 		}
