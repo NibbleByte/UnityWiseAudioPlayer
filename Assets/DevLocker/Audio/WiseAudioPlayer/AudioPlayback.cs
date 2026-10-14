@@ -20,13 +20,6 @@ namespace DevLocker.Audio
 			PerPlayer,
 		}
 
-		public enum InterruptSoundsMode
-		{
-			DontInterrupt = 0,
-			InterruptAll = 1,
-			InterruptSameAsset = 4,
-		}
-
 		public enum RepeatMode
 		{
 			Once = 0,
@@ -75,8 +68,9 @@ namespace DevLocker.Audio
 		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioPlayer setting.")]
 		public RepeatSettings Repeat;
 
-		[Tooltip("When this asset starts, what happens to the sounds already playing on the same player: keep them, stop them all, or stop only the ones from this asset. Stops are instant.")]
-		public InterruptSoundsMode InterruptMode;
+		[SerializeReference]
+		[Tooltip("When this asset starts, what happens to the sounds already playing? Stops are instant.")]
+		public AudioInterrupter Interrupter;
 
 		[Tooltip("Seconds to wait before the asset starts. Not repeated when looping.")]
 		public float Delay;
@@ -104,6 +98,10 @@ namespace DevLocker.Audio
 		public void OnValidate(UnityEngine.Object context)
 		{
 			Repeat.OnValidate(context);
+
+			if (Interrupter != null) {
+				Interrupter.OnValidate(context);
+			}
 		}
 	}
 
@@ -151,6 +149,17 @@ namespace DevLocker.Audio
 	}
 
 	/// <summary>
+	/// Interrupter that is invoked on starting new playback to interrupt any other playing sounds.
+	/// </summary>
+	[Serializable]
+	public abstract class AudioInterrupter
+	{
+		public abstract void Interrupt(AudioPlayback playback);
+
+		public virtual void OnValidate(UnityEngine.Object context) { }
+	}
+
+	/// <summary>
 	/// Represents audio playback in progress.
 	/// </summary>
 	public class AudioPlayback
@@ -186,7 +195,7 @@ namespace DevLocker.Audio
 		/// Used by conductors to persist state per asset between usages. For example: don't repeat last clip. Try to use unique key names.
 		/// </summary>
 		private static Dictionary<ConductorStateKey, object> s_ConductorsPerAssetStateStorage = new Dictionary<ConductorStateKey, object>();
-		
+
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void ClearStaticsCache()
 		{
@@ -215,19 +224,19 @@ namespace DevLocker.Audio
 		{
 			if (Conductor == null)
 				throw new InvalidOperationException($"Trying to get conductor state value for \"{keyName}\", but no valid conductor is set.");
-			
+
 			switch (ConductorStateScope) {
 				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
 					return GetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, defaultValue);
 
 				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					return Player.GetConductorStateValue(Conductor, ConductorAsset, keyName, defaultValue);
-				
+
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 		}
-		
+
 		/// <summary>
 		/// Get conductor state value that is saved per asset.
 		/// </summary>
@@ -244,21 +253,21 @@ namespace DevLocker.Audio
 		{
 			if (Conductor == null)
 				throw new InvalidOperationException($"Trying to set conductor state value for \"{keyName}\", but no valid conductor is set.");
-			
+
 			switch (ConductorStateScope) {
 				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
 					SetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, value);
 					break;
-				
+
 				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					Player.SetConductorStateValue(Conductor, ConductorAsset, keyName, value);
 					break;
-				
+
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 		}
-		
+
 		/// <summary>
 		/// Set conductor state value that is saved per asset.
 		/// </summary>
@@ -266,7 +275,7 @@ namespace DevLocker.Audio
 		{
 			s_ConductorsPerAssetStateStorage[new ConductorStateKey(conductor, asset, keyName)] = value;
 		}
-		
+
 		/// <summary>
 		/// Set all conductor state values of given type that are saved per asset.
 		/// </summary>
@@ -274,9 +283,9 @@ namespace DevLocker.Audio
 		{
 			string assetName = asset ? asset.name : null;
 			ulong assetId = asset ? ConductorStateKey.GetId(asset) : 0;
-			
+
 			var matchedKeys = new List<ConductorStateKey>();
-			
+
 			foreach (var conductorKey in s_ConductorsPerAssetStateStorage.Keys) {
 				if (conductorKey.KeyName == keyName &&
 				    conductorType.IsAssignableFrom(conductorKey.ConductorType) &&
@@ -287,22 +296,22 @@ namespace DevLocker.Audio
 					matchedKeys.Add(conductorKey);
 				}
 			}
-			
+
 			foreach (var key in matchedKeys) {
 				s_ConductorsPerAssetStateStorage[key] = value;
 			}
 		}
-		
+
 		// Yes, this could have been just bunch of tokens concatenated in a string,
 		// but this way I can easily process the individual tokens, instead of parsing the string every time.
 		// Makes code clearer, less garbage.
 		internal struct ConductorStateKey : IEquatable<ConductorStateKey>
 		{
 			public string KeyName;
-			
+
 			public Type ConductorType;
 			public int ConductorId;
-			
+
 			public string AssetName;
 			public ulong AssetId;
 
@@ -318,10 +327,10 @@ namespace DevLocker.Audio
 			public ConductorStateKey(AudioConductor conductor, UnityEngine.Object asset, string keyName)
 			{
 				KeyName = keyName;
-				
+
 				ConductorType = conductor.GetType();
 				ConductorId = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(conductor);
-				
+
 				AssetName = asset ? asset.name : null;
 				AssetId = asset ? GetId(asset) : 0;
 			}

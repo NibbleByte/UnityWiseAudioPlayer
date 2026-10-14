@@ -6,7 +6,7 @@ using DevLocker.Audio.Utils;
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace DevLocker.Audio.Conductors
+namespace DevLocker.Audio.Playback
 {
 	[Serializable]
 	public class SequenceConductor : AudioConductor
@@ -402,7 +402,7 @@ namespace DevLocker.Audio.Conductors
 			// Asset can be null.
 			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
 			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);
-			
+
 			if (player) {
 				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
 				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);

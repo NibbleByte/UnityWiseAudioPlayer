@@ -140,7 +140,7 @@ namespace DevLocker.Audio
 
 		/// <summary>
 		/// Object used by <see cref="AudioCondition"/> as context.
-		/// Works great with <see cref="Conductors.DictionaryContext"/>, but you can have your custom implementation of <see cref="Conductors.IValuesContainer"/>.
+		/// Works great with <see cref="Playback.DictionaryContext"/>, but you can have your custom implementation of <see cref="Playback.IValuesContainer"/>.
 		/// </summary>
 		public object ConductorsConditionContext;
 
@@ -593,6 +593,16 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
+		/// Instantly stop all active playbacks for all players except the one provided.
+		/// </summary>
+		public static void StopAllPlayersExcept(AudioPlayback keptPlayback)
+		{
+			foreach(var player in m_ActivePlayers) {
+				player.StopAllExcept(keptPlayback);
+			}
+		}
+
+		/// <summary>
 		/// Instantly stop all active playbacks that use conductor coming from given asset.
 		/// </summary>
 		public virtual void StopAllWithConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
@@ -606,6 +616,16 @@ namespace DevLocker.Audio
 
 					ReleaseAudioPlayback(playback);
 				}
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks for all players that use conductor coming from given asset.
+		/// </summary>
+		public static void StopAllPlayersWithConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
+		{
+			foreach (var player in m_ActivePlayers) {
+				player.StopAllWithConductorAsset(conductorAsset, excludePlayback);
 			}
 		}
 
@@ -938,21 +958,8 @@ namespace DevLocker.Audio
 
 			AudioSource source = playback.AudioSource;
 
-			switch (settings.InterruptMode) {
-				case AudioPlaybackSettings.InterruptSoundsMode.DontInterrupt:
-					// Do nothing.
-					break;
-				case AudioPlaybackSettings.InterruptSoundsMode.InterruptAll:
-					StopAllExcept(playback);
-					break;
-				case AudioPlaybackSettings.InterruptSoundsMode.InterruptSameAsset:
-					if (conductorAsset != null) {
-						StopAllWithConductorAsset(conductorAsset, playback);
-					} else {
-						// Same as DontInterrupt.
-					}
-					break;
-				default: throw new NotSupportedException(settings.InterruptMode.ToString());
+			if (settings.Interrupter != null) {
+				settings.Interrupter.Interrupt(playback);
 			}
 
 			bool customLoop;
@@ -965,7 +972,7 @@ namespace DevLocker.Audio
 					// If conductor has custom logic other than just playing a looped sound,
 					// we implement the loop. Normal sounds should still loop via the source itself,
 					// which should drop any playback gaps between loops.
-					if (settings.Repeat.IsRepeating && !(conductor is Conductors.PlayAudioConductor)) {
+					if (settings.Repeat.IsRepeating && !(conductor is Playback.PlayAudioConductor)) {
 						customLoop = true;
 						source.loop = false;
 					}

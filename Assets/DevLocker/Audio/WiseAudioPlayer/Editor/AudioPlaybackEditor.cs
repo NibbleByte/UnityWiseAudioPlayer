@@ -64,4 +64,9 @@ namespace DevLocker.Audio.Editor
 	public class AudioConductorDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
 	}
+
+	[CustomPropertyDrawer(typeof(AudioInterrupter))]
+	public class AudioInterrupterDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
+	{
+	}
 }

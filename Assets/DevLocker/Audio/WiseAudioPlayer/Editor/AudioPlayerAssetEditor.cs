@@ -198,10 +198,10 @@ namespace DevLocker.Audio.Utils.Editor
 
 					// Try to guess the conductor's name. It depends on the implementation.
 					SerializedProperty audioClipProperty =
-						conductorProperty.FindPropertyRelative(nameof(Conductors.PlayAudioConductor.AudioClip)) ??
-						conductorProperty.FindPropertyRelative(nameof(Conductors.PlayCollectionAudioConductor.AudioClips)) ??
-						conductorProperty.FindPropertyRelative(nameof(Conductors.IntroThenLoopConductor.Looped)) ??
-						conductorProperty.FindPropertyRelative(nameof(Conductors.LoopSequenceOverlappingConductor.Clips)) ??
+						conductorProperty.FindPropertyRelative(nameof(Playback.PlayAudioConductor.AudioClip)) ??
+						conductorProperty.FindPropertyRelative(nameof(Playback.PlayCollectionAudioConductor.AudioClips)) ??
+						conductorProperty.FindPropertyRelative(nameof(Playback.IntroThenLoopConductor.Looped)) ??
+						conductorProperty.FindPropertyRelative(nameof(Playback.LoopSequenceOverlappingConductor.Clips)) ??
 						conductorProperty.FindPropertyRelative("Resource"); // In case of direct Unity AudioResource reference.
 						conductorProperty.FindPropertyRelative("Asset"); // In any case?
 
