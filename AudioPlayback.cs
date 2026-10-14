@@ -81,6 +81,9 @@ namespace DevLocker.Audio
 		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.\nYou can have audio filter components attached too, but the player must use " + nameof(AudioPlayer.AudioSourcesPoolMode.GlobalPool) + " as pool mode!")]
 		public AudioSource Template;
 
+		[Tooltip("Tags that associate with this asset. Can be used for interrupting, etc...")]
+		public AudioTagObject[] Tags;
+
 		/// <summary>
 		/// The <see cref="OutputMixer"/> or the <see cref="Template"/>'s mixer if empty.
 		/// </summary>
@@ -180,6 +183,8 @@ namespace DevLocker.Audio
 		public AudioPlaybackSettings.RepeatSettings Repeat { get; internal set; }
 		public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 		public AudioSource Template { get; internal set; }
+
+		public AudioTagObject[] Tags { get; internal set; }
 
 		internal Coroutine ConductorCoroutine;
 		internal Coroutine StopFadeCoroutine;

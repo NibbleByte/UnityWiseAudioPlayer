@@ -575,60 +575,6 @@ namespace DevLocker.Audio
 			}
 		}
 
-		/// <summary>
-		/// Instantly stop all active playbacks except the one provided.
-		/// </summary>
-		public virtual void StopAllExcept(AudioPlayback keptPlayback)
-		{
-			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
-				var playback = m_ActivePlaybacks[i];
-				if (playback != keptPlayback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Instantly stop all active playbacks for all players except the one provided.
-		/// </summary>
-		public static void StopAllPlayersExcept(AudioPlayback keptPlayback)
-		{
-			foreach(var player in m_ActivePlayers) {
-				player.StopAllExcept(keptPlayback);
-			}
-		}
-
-		/// <summary>
-		/// Instantly stop all active playbacks that use conductor coming from given asset.
-		/// </summary>
-		public virtual void StopAllWithConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
-		{
-			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
-				var playback = m_ActivePlaybacks[i];
-				if (playback.ConductorAsset == conductorAsset && excludePlayback != playback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Instantly stop all active playbacks for all players that use conductor coming from given asset.
-		/// </summary>
-		public static void StopAllPlayersWithConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
-		{
-			foreach (var player in m_ActivePlayers) {
-				player.StopAllWithConductorAsset(conductorAsset, excludePlayback);
-			}
-		}
-
 		[ContextMenu("Pause")]
 		public virtual void Pause()
 		{
@@ -937,6 +883,118 @@ namespace DevLocker.Audio
 
 		#endregion
 
+		#region Stop (Interrupt) Helpers
+
+		/// <summary>
+		/// Instantly stop all active playbacks except the one provided.
+		/// </summary>
+		public virtual void StopAllExcept(AudioPlayback keptPlayback)
+		{
+			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				var playback = m_ActivePlaybacks[i];
+				if (playback != keptPlayback) {
+
+					// Before actually releasing the playback, so it can be used by the event.
+					PlaybackStopped?.Invoke(playback);
+
+					ReleaseAudioPlayback(playback);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks for all players except the one provided.
+		/// </summary>
+		public static void StopAllPlayersExcept(AudioPlayback keptPlayback)
+		{
+			foreach (var player in m_ActivePlayers) {
+				player.StopAllExcept(keptPlayback);
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks that use conductor coming from given asset.
+		/// </summary>
+		public virtual void StopAllFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
+		{
+			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				var playback = m_ActivePlaybacks[i];
+				if (playback.ConductorAsset == conductorAsset && excludePlayback != playback) {
+
+					// Before actually releasing the playback, so it can be used by the event.
+					PlaybackStopped?.Invoke(playback);
+
+					ReleaseAudioPlayback(playback);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks for all players that use conductor coming from given asset.
+		/// </summary>
+		public static void StopAllPlayersFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
+		{
+			foreach (var player in m_ActivePlayers) {
+				player.StopAllFromConductorAsset(conductorAsset, excludePlayback);
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks that associate with the given tags.
+		/// </summary>
+		public virtual void StopAllWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
+		{
+			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				var playback = m_ActivePlaybacks[i];
+				if (playback.Tags.Intersect(tags).Any() && excludePlayback != playback) {
+
+					// Before actually releasing the playback, so it can be used by the event.
+					PlaybackStopped?.Invoke(playback);
+
+					ReleaseAudioPlayback(playback);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks for all players that associate with the given tags.
+		/// </summary>
+		public static void StopAllPlayersWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
+		{
+			foreach (var player in m_ActivePlayers) {
+				player.StopAllWithTags(tags, excludePlayback);
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks that use the given output mixer.
+		/// </summary>
+		public virtual void StopAllWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
+		{
+			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				var playback = m_ActivePlaybacks[i];
+				if (playback.OutputMixer == outputMixer && excludePlayback != playback) {
+
+					// Before actually releasing the playback, so it can be used by the event.
+					PlaybackStopped?.Invoke(playback);
+
+					ReleaseAudioPlayback(playback);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Instantly stop all active playbacks for all players that use the given output mixer.
+		/// </summary>
+		public static void StopAllPlayersWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
+		{
+			foreach (var player in m_ActivePlayers) {
+				player.StopAllWithOutputMixer(outputMixer, excludePlayback);
+			}
+		}
+
+		#endregion
+
 		/// <summary>
 		/// Plays an asset (selecting a conductor by its conditions) or a standalone conductor with the given settings.
 		/// </summary>
@@ -948,6 +1006,7 @@ namespace DevLocker.Audio
 			playback.AudioSource.loop = settings.Repeat.IsLoop;
 			playback.Repeat = settings.Repeat;
 			playback.ConductorStateScope = settings.StateScope;
+			playback.Tags = settings.Tags;
 
 			playback.Template = settings.Template;
 			ApplyTemplate(playback, settings.Template);	// Skips copy if template is the same as last time.
