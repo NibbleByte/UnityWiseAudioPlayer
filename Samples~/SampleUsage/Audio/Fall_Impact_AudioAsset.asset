@@ -40,7 +40,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 8526195024085123077
-      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AudioClip:
           Clip: {fileID: 8300000, guid: c647613ff47bfbb4aa6a0ec2a3d57027, type: 3}
@@ -57,13 +57,13 @@ MonoBehaviour:
             Step: 0
           Pitches: 
     - rid: 8526195024085123078
-      type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CompareFloat, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         KeyName: ImpactForce
         Comparison: 2
         Value: 4
     - rid: 8526195024085123079
-      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AudioClip:
           Clip: {fileID: 8300000, guid: 28dcd303c932c4041b8da03d59a93ff8, type: 3}
@@ -80,19 +80,19 @@ MonoBehaviour:
             Step: 0
           Pitches: 
     - rid: 8526195024085123080
-      type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CompareFloat, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         KeyName: ImpactForce
         Comparison: 5
         Value: 4
     - rid: 8526195024085123081
-      type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CompareFloat, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         KeyName: ImpactForce
         Comparison: 2
         Value: 8
     - rid: 8526195024085123082
-      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: PlayAudioConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AudioClip:
           Clip: {fileID: 8300000, guid: b4dcdaa7efec1a84f85eea51d23b5e40, type: 3}
@@ -109,7 +109,7 @@ MonoBehaviour:
             Step: 0
           Pitches: 
     - rid: 8526195024085123083
-      type: {class: CompareFloat, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CompareFloat, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         KeyName: ImpactForce
         Comparison: 5

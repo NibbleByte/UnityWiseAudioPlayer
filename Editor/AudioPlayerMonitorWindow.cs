@@ -124,7 +124,7 @@ namespace DevLocker.Audio.Editor
 				PlayOnEnable = playback.Player.PlayOnEnable,
 
 				RepeatMode = playback.Repeat.Mode,
-				Volume = playback.AudioSource.volume,	// Conductors may change audio source volume directly.
+				Volume = playback.AudioSource.volume,	// Conductor may change audio source volume directly.
 				Pitch = playback.AudioSource.pitch,
 				SpatialBlend = playback.AudioSource.spatialBlend,
 
@@ -227,7 +227,7 @@ namespace DevLocker.Audio.Editor
 			EditorGUILayout.EndHorizontal();
 
 			m_ScrollView = GUILayout.BeginScrollView(m_ScrollView);
-			
+
 			// Table Content
 			for (int i = m_Actions.Count - 1; i >= 0; i--) {
 				var action = m_Actions[i];

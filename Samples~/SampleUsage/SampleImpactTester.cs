@@ -1,7 +1,7 @@
 
 
 using DevLocker.Audio;
-using DevLocker.Audio.Conductors;
+using DevLocker.Audio.Playback;
 using UnityEngine;
 
 public class SampleImpactTester : MonoBehaviour

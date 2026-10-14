@@ -30,7 +30,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 529638131987382329
-      type: {class: IntroThenLoopConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: IntroThenLoopConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         Intro: {fileID: 8300000, guid: c4c4861d067ce984a9ef5b7b22f98947, type: 3}
         Looped: {fileID: 8300000, guid: acd68b63ee5a9d94b807fa5857eca272, type: 3}

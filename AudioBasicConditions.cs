@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-namespace DevLocker.Audio.Conductors
+namespace DevLocker.Audio.Playback
 {
 	#region Timing Predicates
 

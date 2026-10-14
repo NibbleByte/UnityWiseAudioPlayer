@@ -31,7 +31,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 8526195400101331320
-      type: {class: PlayCollectionAudioConductor, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: PlayCollectionAudioConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         Mode: 2
         AvoidRepeatingLast: 2
@@ -84,6 +84,6 @@ MonoBehaviour:
             Step: 0
           Pitches: 
     - rid: 8526195423432933557
-      type: {class: CooldownCondition, ns: DevLocker.Audio.Conductors, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: CooldownCondition, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         CooldownSeconds: 0.1
