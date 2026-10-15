@@ -1347,6 +1347,14 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
+		/// Should template cache be used?
+		/// If you plan to change audio source settings while it is playing, clear this flag,
+		/// so you get a fresh template copy every time.
+		/// </summary>
+		[NonSerialized]
+		public bool UseTemplateCache = true;
+
+		/// <summary>
 		/// Remove the used template from the cache for this playback.
 		/// Call this when you change the audio source details after template was applied.
 		/// </summary>
@@ -1377,7 +1385,8 @@ namespace DevLocker.Audio
 			if (playback.SourcesPoolMode == AudioSourcesPoolMode.GlobalPool) {
 
 				if (playback.AudioSource.TryGetComponent(out lastTemplateComponent)) {
-					if (lastTemplateComponent.TemplateUsed != template) {
+					// Not cached means the last user may have modified the source - copy again.
+					if (lastTemplateComponent.TemplateUsed != template || !lastTemplateComponent.IsCached) {
 						lastTemplateComponent.TemplateUsed = template;
 						doCopy = true;
 					}
@@ -1388,10 +1397,17 @@ namespace DevLocker.Audio
 					doCopy = true;
 				}
 
+				// Pooled sources are shared between players - mark it so the next user re-copies the template.
+				lastTemplateComponent.IsCached = UseTemplateCache;
+
 
 			} else {
 
-				if (!m_LastTemplatesUsed.TryGetValue(playback.AudioSource, out AudioSource lastTemplate) || lastTemplate != template) {
+				if (!UseTemplateCache) {
+					// Don't keep stale entries, in case the flag gets set later.
+					m_LastTemplatesUsed.Remove(playback.AudioSource);
+
+				} else if (!m_LastTemplatesUsed.TryGetValue(playback.AudioSource, out AudioSource lastTemplate) || lastTemplate != template) {
 					m_LastTemplatesUsed[playback.AudioSource] = template;
 
 					doCopy = true;
@@ -1403,7 +1419,7 @@ namespace DevLocker.Audio
 			isSelectedInEditor = template && (UnityEditor.Selection.activeGameObject == template.gameObject || UnityEditor.Selection.activeObject is AudioPlayerAsset selectedAsset && selectedAsset.Settings.Template == template);
 #endif
 
-			if (doCopy || isSelectedInEditor) {
+			if (doCopy || isSelectedInEditor || !UseTemplateCache) {
 
 				if (template) {
 					AudioCopyUtils.CopyAudioSourceDetails(destination, template);
@@ -1510,6 +1526,7 @@ namespace DevLocker.Audio
 		internal class LastTemplateUsed : MonoBehaviour
 		{
 			public AudioSource TemplateUsed;
+			public bool IsCached = true;	// False if the template was applied without caching - source may have been modified.
 			public List<Component> AddedFilterComponents = new List<Component>();
 		}
 	}
