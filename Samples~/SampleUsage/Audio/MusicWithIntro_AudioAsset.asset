@@ -44,4 +44,5 @@ MonoBehaviour:
       data:
         AllPlayers: 1
         FadeOutDuration: 0
-        OutputMixer: {fileID: 6756489236935666581, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
+        OutputMixers:
+        - {fileID: 6756489236935666581, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}

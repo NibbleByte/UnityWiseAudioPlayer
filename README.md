@@ -56,7 +56,7 @@ When an asset starts playing (after its delay), its "Interrupter" can stop other
 - `StopAllInterrupter` - stops all other sounds.
 - `StopSameAssetInterrupter` - stops other sounds started by the same asset, so it doesn't overlap with itself.
 - `StopByTagsInterrupter` - stops sounds whose asset has any of the listed tags.
-- `StopByMixerInterrupter` - stops sounds routed to the given output mixer group (child groups are not included).
+- `StopByMixerInterrupter` - stops sounds routed to any of the given output mixer groups or their child groups.
 - `MultipleInterrupters` - runs several interrupters in order.
 
 If you need custom behaviour, extend `AudioInterrupter` and make your own interrupter type.

@@ -57,7 +57,7 @@ namespace DevLocker.Audio.Playback
 	public class StopSameAssetInterrupter : AudioInterrupter
 	{
 		[Tooltip(AllPlayersTooltip)]
-		public bool AllPlayers = true;
+		public bool AllPlayers;
 
 		[Min(0f)]
 		[Tooltip(FadeOutDurationTooltip)]
@@ -81,7 +81,7 @@ namespace DevLocker.Audio.Playback
 	public class StopByTagsInterrupter : AudioInterrupter
 	{
 		[Tooltip(AllPlayersTooltip)]
-		public bool AllPlayers = true;
+		public bool AllPlayers;
 
 		[Min(0f)]
 		[Tooltip(FadeOutDurationTooltip)]
@@ -116,26 +116,21 @@ namespace DevLocker.Audio.Playback
 	public class StopByMixerInterrupter : AudioInterrupter
 	{
 		[Tooltip(AllPlayersTooltip)]
-		public bool AllPlayers = true;
+		public bool AllPlayers;
 
 		[Min(0f)]
 		[Tooltip(FadeOutDurationTooltip)]
 		public float FadeOutDuration;
 
-		[Tooltip("Stops sounds routed to exactly this mixer group. Child groups are not included.")]
-		public AudioMixerGroup OutputMixer;
+		[Tooltip("Stops sounds routed to any of these mixer groups or their child groups.")]
+		public AudioMixerGroup[] OutputMixers = Array.Empty<AudioMixerGroup>();
 
 		public override void Interrupt(AudioPlayback playback)
 		{
-			if (OutputMixer == null) {
-				Debug.LogWarning($"{nameof(StopByMixerInterrupter)} {playback.ConductorAsset} has missing output mixer.", playback.ConductorAsset ? playback.ConductorAsset : playback.Player);
-				return;
-			}
-
 			if (AllPlayers) {
-				AudioPlayer.StopAllPlayersWithOutputMixer(OutputMixer, playback, FadeOutDuration);
+				AudioPlayer.StopAllPlayersWithAnyOutputMixer(OutputMixers, playback, FadeOutDuration);
 			} else {
-				playback.Player.StopAllWithOutputMixer(OutputMixer, playback, FadeOutDuration);
+				playback.Player.StopAllWithAnyOutputMixer(OutputMixers, playback, FadeOutDuration);
 			}
 		}
 
@@ -143,8 +138,14 @@ namespace DevLocker.Audio.Playback
 		{
 			base.OnValidate(context);
 
-			if (OutputMixer == null && !ReferenceEquals(OutputMixer, null)) {
-				Debug.LogWarning($"{nameof(StopByMixerInterrupter)} has missing output mixer.", context);
+			if (OutputMixers == null)
+				return;
+
+			foreach (var outputMixer in OutputMixers) {
+				if (outputMixer == null && !ReferenceEquals(outputMixer, null)) {
+					Debug.LogWarning($"{nameof(StopByMixerInterrupter)} has missing output mixer.", context);
+					break;
+				}
 			}
 		}
 	}

@@ -991,10 +991,35 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Stop all active playbacks that use the given output mixer.
+		/// Stop all active playbacks that output to any of the given mixer groups or their child groups.
 		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public virtual void StopAllWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
+		public virtual void StopAllWithAnyOutputMixer(IEnumerable<AudioMixerGroup> outputMixerParents, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
+		{
+			StopAllWithOutputMixerGroupsImpl(AudioPlayerUtils.GetMixerGroupsWithChildren(outputMixerParents).ToArray(), excludePlayback, fadeOutDuration);
+		}
+
+		/// <summary>
+		/// Stop all active playbacks for all players that output to any of the given mixer groups or their child groups.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
+		/// </summary>
+		public static void StopAllPlayersWithAnyOutputMixer(IEnumerable<AudioMixerGroup> outputMixerParents, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
+		{
+			// Collect the groups once for all players.
+			AudioMixerGroup[] groups = AudioPlayerUtils.GetMixerGroupsWithChildren(outputMixerParents).ToArray();
+			if (groups.Length == 0)
+				return;
+
+			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
+			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
+				if (i >= m_ActivePlayers.Count)
+					continue;
+
+				m_ActivePlayers[i].StopAllWithOutputMixerGroupsImpl(groups, excludePlayback, fadeOutDuration);
+			}
+		}
+
+		protected virtual void StopAllWithOutputMixerGroupsImpl(AudioMixerGroup[] outputMixersWithChildren, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				// Event handlers may have stopped other playbacks, shrinking the list.
@@ -1002,24 +1027,9 @@ namespace DevLocker.Audio
 					continue;
 
 				var playback = m_ActivePlaybacks[i];
-				if (playback.OutputMixer == outputMixer && excludePlayback != playback) {
+				if (excludePlayback != playback && AudioPlayerUtils.IsRoutedToAnyGroup(playback.OutputMixer, outputMixersWithChildren)) {
 					StopInterruptedPlayback(playback, fadeOutDuration);
 				}
-			}
-		}
-
-		/// <summary>
-		/// Stop all active playbacks for all players that use the given output mixer.
-		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
-		/// </summary>
-		public static void StopAllPlayersWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
-		{
-			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
-			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
-				if (i >= m_ActivePlayers.Count)
-					continue;
-
-				m_ActivePlayers[i].StopAllWithOutputMixer(outputMixer, excludePlayback, fadeOutDuration);
 			}
 		}
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -10,6 +11,11 @@ namespace DevLocker.Audio.Utils
 	/// </summary>
 	public static class AudioPlayerUtils
 	{
+		/// <summary>
+		/// Name of the root group of every audio mixer. Unity doesn't allow renaming it.
+		/// </summary>
+		public const string MasterMixerGroupName = "Master";
+
 		public const float MinVolumeDB = -80f;
 		public const float MaxVolumeDB = 0f;
 
@@ -30,6 +36,62 @@ namespace DevLocker.Audio.Utils
 		public const string PitchRangeHint = "Random pitch offset in cents, rolled on every play and added on top of the clip pitch.\n\n" + AudioPlayerAsset.CentPitchHint;
 		public const string UsePitchRangeHint = "A pitch will randomly be selected from this range.\nHas priority over the pitches list - if used, the list is ignored.\n\n" + AudioPlayerAsset.CentPitchHint;
 		public const string RangeStepHint = "Roll only values divisible by this step (positive or negative), so the randomization is noticeable enough.\nExample: range [-200, 200] with step 100 rolls -200, -100, 0, 100 or 200.\n\n0 means no step - any value in the range.";
+
+		/// <summary>
+		/// Returns the given mixer group and all of its child groups in the same mixer.
+		/// </summary>
+		public static IEnumerable<AudioMixerGroup> GetMixerGroupWithChildren(AudioMixerGroup group)
+		{
+			// Unity doesn't expose the groups hierarchy at runtime, the only API is FindMatchingGroups(), sad.
+			AudioMixer mixer = group.audioMixer;
+
+			// Group paths look like "Master/Music/Ambient". The root group is always called "Master" (can't be renamed),
+			// and all paths start with it.
+			if (group.name == MasterMixerGroupName) {
+				foreach (AudioMixerGroup child in mixer.FindMatchingGroups(MasterMixerGroupName)) {
+					yield return child;
+				}
+				yield break;
+			}
+
+			yield return group;
+
+			foreach (AudioMixerGroup child in mixer.FindMatchingGroups("/" + group.name + "/")) {
+				yield return child;
+			}
+		}
+
+		/// <summary>
+		/// Returns the given mixer groups and all of their child groups.
+		/// </summary>
+		public static IEnumerable<AudioMixerGroup> GetMixerGroupsWithChildren(IEnumerable<AudioMixerGroup> groups)
+		{
+			foreach (AudioMixerGroup group in groups) {
+				if (group == null)
+					continue;
+
+				foreach (AudioMixerGroup child in GetMixerGroupWithChildren(group)) {
+					yield return child;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Is the given mixer group one of the provided groups, or is its mixer routed (nested) into one of them.
+		/// </summary>
+		public static bool IsRoutedToAnyGroup(AudioMixerGroup group, AudioMixerGroup[] groups)
+		{
+			// Walk up through nested mixers - a mixer can output into a group of another mixer.
+			// Depth limit protects against routing loops.
+			for (int depth = 0; group != null && depth < 16; depth++) {
+				if (Array.IndexOf(groups, group) != -1)
+					return true;
+
+				group = group.audioMixer.outputAudioMixerGroup;
+			}
+
+			return false;
+		}
 
 		/// <summary>
 		/// Roll the volume randomization range (if used) on top of the constant volume, plus any additional offset
