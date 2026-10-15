@@ -47,7 +47,7 @@ namespace DevLocker.Audio.Playback
 		public bool AllPlayers = true;
 
 		[Tooltip("Stop sounds from assets with any of these tags.")]
-		public AudioTagObject[] Tags;
+		public AudioTagObject[] Tags = Array.Empty<AudioTagObject>();
 
 		public override void Interrupt(AudioPlayback playback)
 		{
@@ -83,7 +83,7 @@ namespace DevLocker.Audio.Playback
 		public override void Interrupt(AudioPlayback playback)
 		{
 			if (OutputMixer == null) {
-				Debug.LogWarning($"{nameof(StopSoundsWithOutputMixer)} {playback.ConductorAsset} has missing output mixer.", playback.ConductorAsset ?? playback.Player);
+				Debug.LogWarning($"{nameof(StopSoundsWithOutputMixer)} {playback.ConductorAsset} has missing output mixer.", playback.ConductorAsset ? playback.ConductorAsset : playback.Player);
 				return;
 			}
 

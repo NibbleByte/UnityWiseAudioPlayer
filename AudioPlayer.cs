@@ -891,13 +891,13 @@ namespace DevLocker.Audio
 		public virtual void StopAllExcept(AudioPlayback keptPlayback)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				// Event handlers may have stopped other playbacks, shrinking the list.
+				if (i >= m_ActivePlaybacks.Count)
+					continue;
+
 				var playback = m_ActivePlaybacks[i];
 				if (playback != keptPlayback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
+					StopPlaybackInstantly(playback);
 				}
 			}
 		}
@@ -907,8 +907,12 @@ namespace DevLocker.Audio
 		/// </summary>
 		public static void StopAllPlayersExcept(AudioPlayback keptPlayback)
 		{
-			foreach (var player in m_ActivePlayers) {
-				player.StopAllExcept(keptPlayback);
+			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
+			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
+				if (i >= m_ActivePlayers.Count)
+					continue;
+
+				m_ActivePlayers[i].StopAllExcept(keptPlayback);
 			}
 		}
 
@@ -918,13 +922,13 @@ namespace DevLocker.Audio
 		public virtual void StopAllFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				// Event handlers may have stopped other playbacks, shrinking the list.
+				if (i >= m_ActivePlaybacks.Count)
+					continue;
+
 				var playback = m_ActivePlaybacks[i];
 				if (playback.ConductorAsset == conductorAsset && excludePlayback != playback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
+					StopPlaybackInstantly(playback);
 				}
 			}
 		}
@@ -934,35 +938,49 @@ namespace DevLocker.Audio
 		/// </summary>
 		public static void StopAllPlayersFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
 		{
-			foreach (var player in m_ActivePlayers) {
-				player.StopAllFromConductorAsset(conductorAsset, excludePlayback);
+			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
+			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
+				if (i >= m_ActivePlayers.Count)
+					continue;
+
+				m_ActivePlayers[i].StopAllFromConductorAsset(conductorAsset, excludePlayback);
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks that associate with the given tags.
+		/// Instantly stop all active playbacks that associate with any of the given tags.
 		/// </summary>
 		public virtual void StopAllWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
 		{
+			if (tags.Length == 0)
+				return;
+
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				// Event handlers may have stopped other playbacks, shrinking the list.
+				if (i >= m_ActivePlaybacks.Count)
+					continue;
+
 				var playback = m_ActivePlaybacks[i];
-				if (playback.Tags.Intersect(tags).Any() && excludePlayback != playback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
+				if (excludePlayback != playback && HasAnyTag(playback, tags)) {
+					StopPlaybackInstantly(playback);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks for all players that associate with the given tags.
+		/// Instantly stop all active playbacks for all players that associate with any of the given tags.
 		/// </summary>
 		public static void StopAllPlayersWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
 		{
-			foreach (var player in m_ActivePlayers) {
-				player.StopAllWithTags(tags, excludePlayback);
+			if (tags.Length == 0)
+				return;
+
+			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
+			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
+				if (i >= m_ActivePlayers.Count)
+					continue;
+
+				m_ActivePlayers[i].StopAllWithTags(tags, excludePlayback);
 			}
 		}
 
@@ -972,13 +990,13 @@ namespace DevLocker.Audio
 		public virtual void StopAllWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
+				// Event handlers may have stopped other playbacks, shrinking the list.
+				if (i >= m_ActivePlaybacks.Count)
+					continue;
+
 				var playback = m_ActivePlaybacks[i];
 				if (playback.OutputMixer == outputMixer && excludePlayback != playback) {
-
-					// Before actually releasing the playback, so it can be used by the event.
-					PlaybackStopped?.Invoke(playback);
-
-					ReleaseAudioPlayback(playback);
+					StopPlaybackInstantly(playback);
 				}
 			}
 		}
@@ -988,9 +1006,41 @@ namespace DevLocker.Audio
 		/// </summary>
 		public static void StopAllPlayersWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
 		{
-			foreach (var player in m_ActivePlayers) {
-				player.StopAllWithOutputMixer(outputMixer, excludePlayback);
+			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
+			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
+				if (i >= m_ActivePlayers.Count)
+					continue;
+
+				m_ActivePlayers[i].StopAllWithOutputMixer(outputMixer, excludePlayback);
 			}
+		}
+
+		/// <summary>
+		/// Does the playback have any of the given tags. Missing (null) tags are ignored.
+		/// </summary>
+		protected static bool HasAnyTag(AudioPlayback playback, AudioTagObject[] tags)
+		{
+			// No LINQ to avoid garbage.
+			foreach (var tag in playback.Tags) {
+				if (tag != null && Array.IndexOf(tags, tag) != -1)
+					return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Releases the playback, raising <see cref="PlaybackStopped"/> if not already raised.
+		/// </summary>
+		private void StopPlaybackInstantly(AudioPlayback playback)
+		{
+			// If it was already fading out, PlaybackStopped was raised when the fade started.
+			if (playback.StopFadeCoroutine == null) {
+				// Before actually releasing the playback, so it can be used by the event.
+				PlaybackStopped?.Invoke(playback);
+			}
+
+			ReleaseAudioPlayback(playback);
 		}
 
 		#endregion
@@ -1111,6 +1161,7 @@ namespace DevLocker.Audio
 			playback.AudioSource.loop = m_Repeat.IsLoop;
 			playback.Repeat = m_Repeat;
 			playback.ConductorStateScope = AudioPlaybackSettings.ConductorsStateScope.PerPlayer;
+			playback.Tags = Array.Empty<AudioTagObject>();
 
 			playback.Template = m_Template;
 			ApplyTemplate(playback, playback.Template); // Skips copy if template is the same as last time.

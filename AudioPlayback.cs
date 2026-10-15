@@ -184,7 +184,7 @@ namespace DevLocker.Audio
 		public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 		public AudioSource Template { get; internal set; }
 
-		public AudioTagObject[] Tags { get; internal set; }
+		public AudioTagObject[] Tags { get; internal set; } = Array.Empty<AudioTagObject>();
 
 		internal Coroutine ConductorCoroutine;
 		internal Coroutine StopFadeCoroutine;
