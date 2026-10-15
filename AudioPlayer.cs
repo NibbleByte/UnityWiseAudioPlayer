@@ -886,9 +886,10 @@ namespace DevLocker.Audio
 		#region Stop (Interrupt) Helpers
 
 		/// <summary>
-		/// Instantly stop all active playbacks except the one provided.
+		/// Stop all active playbacks except the one provided.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public virtual void StopAllExcept(AudioPlayback keptPlayback)
+		public virtual void StopAllExcept(AudioPlayback keptPlayback, float fadeOutDuration = 0f)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				// Event handlers may have stopped other playbacks, shrinking the list.
@@ -897,29 +898,31 @@ namespace DevLocker.Audio
 
 				var playback = m_ActivePlaybacks[i];
 				if (playback != keptPlayback) {
-					StopPlaybackInstantly(playback);
+					StopInterruptedPlayback(playback, fadeOutDuration);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks for all players except the one provided.
+		/// Stop all active playbacks for all players except the one provided.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public static void StopAllPlayersExcept(AudioPlayback keptPlayback)
+		public static void StopAllPlayersExcept(AudioPlayback keptPlayback, float fadeOutDuration = 0f)
 		{
 			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
 			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
 				if (i >= m_ActivePlayers.Count)
 					continue;
 
-				m_ActivePlayers[i].StopAllExcept(keptPlayback);
+				m_ActivePlayers[i].StopAllExcept(keptPlayback, fadeOutDuration);
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks that use conductor coming from given asset.
+		/// Stop all active playbacks that use conductor coming from given asset.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public virtual void StopAllFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
+		public virtual void StopAllFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				// Event handlers may have stopped other playbacks, shrinking the list.
@@ -928,29 +931,31 @@ namespace DevLocker.Audio
 
 				var playback = m_ActivePlaybacks[i];
 				if (playback.ConductorAsset == conductorAsset && excludePlayback != playback) {
-					StopPlaybackInstantly(playback);
+					StopInterruptedPlayback(playback, fadeOutDuration);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks for all players that use conductor coming from given asset.
+		/// Stop all active playbacks for all players that use conductor coming from given asset.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public static void StopAllPlayersFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null)
+		public static void StopAllPlayersFromConductorAsset(UnityEngine.Object conductorAsset, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
 			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
 				if (i >= m_ActivePlayers.Count)
 					continue;
 
-				m_ActivePlayers[i].StopAllFromConductorAsset(conductorAsset, excludePlayback);
+				m_ActivePlayers[i].StopAllFromConductorAsset(conductorAsset, excludePlayback, fadeOutDuration);
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks that associate with any of the given tags.
+		/// Stop all active playbacks that associate with any of the given tags.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public virtual void StopAllWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
+		public virtual void StopAllWithAnyTag(AudioTag[] tags, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			if (tags.Length == 0)
 				return;
@@ -962,15 +967,16 @@ namespace DevLocker.Audio
 
 				var playback = m_ActivePlaybacks[i];
 				if (excludePlayback != playback && HasAnyTag(playback, tags)) {
-					StopPlaybackInstantly(playback);
+					StopInterruptedPlayback(playback, fadeOutDuration);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks for all players that associate with any of the given tags.
+		/// Stop all active playbacks for all players that associate with any of the given tags.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public static void StopAllPlayersWithTags(AudioTagObject[] tags, AudioPlayback excludePlayback = null)
+		public static void StopAllPlayersWithAnyTag(AudioTag[] tags, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			if (tags.Length == 0)
 				return;
@@ -980,14 +986,15 @@ namespace DevLocker.Audio
 				if (i >= m_ActivePlayers.Count)
 					continue;
 
-				m_ActivePlayers[i].StopAllWithTags(tags, excludePlayback);
+				m_ActivePlayers[i].StopAllWithAnyTag(tags, excludePlayback, fadeOutDuration);
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks that use the given output mixer.
+		/// Stop all active playbacks that use the given output mixer.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public virtual void StopAllWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
+		public virtual void StopAllWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			for (int i = m_ActivePlaybacks.Count - 1; i >= 0; i--) {
 				// Event handlers may have stopped other playbacks, shrinking the list.
@@ -996,29 +1003,30 @@ namespace DevLocker.Audio
 
 				var playback = m_ActivePlaybacks[i];
 				if (playback.OutputMixer == outputMixer && excludePlayback != playback) {
-					StopPlaybackInstantly(playback);
+					StopInterruptedPlayback(playback, fadeOutDuration);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Instantly stop all active playbacks for all players that use the given output mixer.
+		/// Stop all active playbacks for all players that use the given output mixer.
+		/// If <paramref name="fadeOutDuration"/> is non-zero value, will fade the sounds first, then stop them.
 		/// </summary>
-		public static void StopAllPlayersWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null)
+		public static void StopAllPlayersWithOutputMixer(AudioMixerGroup outputMixer, AudioPlayback excludePlayback = null, float fadeOutDuration = 0f)
 		{
 			// Iterate backwards by index - event handlers may enable / disable players, modifying the list.
 			for (int i = m_ActivePlayers.Count - 1; i >= 0; i--) {
 				if (i >= m_ActivePlayers.Count)
 					continue;
 
-				m_ActivePlayers[i].StopAllWithOutputMixer(outputMixer, excludePlayback);
+				m_ActivePlayers[i].StopAllWithOutputMixer(outputMixer, excludePlayback, fadeOutDuration);
 			}
 		}
 
 		/// <summary>
 		/// Does the playback have any of the given tags. Missing (null) tags are ignored.
 		/// </summary>
-		protected static bool HasAnyTag(AudioPlayback playback, AudioTagObject[] tags)
+		protected static bool HasAnyTag(AudioPlayback playback, AudioTag[] tags)
 		{
 			// No LINQ to avoid garbage.
 			foreach (var tag in playback.Tags) {
@@ -1030,10 +1038,16 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Releases the playback, raising <see cref="PlaybackStopped"/> if not already raised.
+		/// Fades out or instantly releases the playback, raising <see cref="PlaybackStopped"/> if not already raised.
 		/// </summary>
-		private void StopPlaybackInstantly(AudioPlayback playback)
+		private void StopInterruptedPlayback(AudioPlayback playback, float fadeOutDuration)
 		{
+			if (fadeOutDuration > 0f) {
+				// Handles the fade, event and release. Does nothing if already fading out.
+				Stop(playback, fadeOutDuration);
+				return;
+			}
+
 			// If it was already fading out, PlaybackStopped was raised when the fade started.
 			if (playback.StopFadeCoroutine == null) {
 				// Before actually releasing the playback, so it can be used by the event.
@@ -1161,7 +1175,7 @@ namespace DevLocker.Audio
 			playback.AudioSource.loop = m_Repeat.IsLoop;
 			playback.Repeat = m_Repeat;
 			playback.ConductorStateScope = AudioPlaybackSettings.ConductorsStateScope.PerPlayer;
-			playback.Tags = Array.Empty<AudioTagObject>();
+			playback.Tags = Array.Empty<AudioTag>();
 
 			playback.Template = m_Template;
 			ApplyTemplate(playback, playback.Template); // Skips copy if template is the same as last time.

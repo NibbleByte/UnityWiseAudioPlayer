@@ -40,7 +40,8 @@ MonoBehaviour:
         Volume: 1
         Overlap: 0
     - rid: 529638396851650616
-      type: {class: StopSoundsWithOutputMixer, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: StopByMixerInterrupter, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AllPlayers: 1
+        FadeOutDuration: 0
         OutputMixer: {fileID: 6756489236935666581, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}

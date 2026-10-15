@@ -37,7 +37,7 @@ Make sure all your sounds are played through the `AudioPlayer` component or API 
 
 The `AudioPlayerAsset` serves as an audio proxy that lets you easily change what sounds should be played. Having sound definitions spread out across separate asset files makes collaborating much easier, and managing them is done through the well-known Unity Project window interface. Your programmers can link the asset in the right prefab, while your sound designer can tweak the asset itself without knowing exactly where it's played from.
 
-When the asset is played, its settings (repeat, interrupt mode, delay, output mixer, template and state scope) override the ones on the `AudioPlayer`.
+When the asset is played, its settings (repeat, interrupter, delay, output mixer, template, tags and state scope) override the ones on the `AudioPlayer`.
 
 The asset offers you a list of `Conductors`. Each conductor has conditions that check whether it should be played, and only the first one whose conditions all pass is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
 - `PlayCollectionAudioConductor` - plays a sound picked from a list. Can play them in sequential, shuffle, or random order.
@@ -51,8 +51,20 @@ The asset offers you a list of `Conductors`. Each conductor has conditions that 
 
 Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. The asset's "State Scope" setting decides whether this state is kept per audio player (each player has its own) or per asset (shared by all players). For example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence. Each conductor in the asset keeps its own state.
 
+### Interrupters and tags
+When an asset starts playing (after its delay), its "Interrupter" can stop other sounds that are already playing. For example, a new music track can stop the old one. Leave it empty to not interrupt anything. These interrupters come with the framework:
+- `StopAllInterrupter` - stops all other sounds.
+- `StopSameAssetInterrupter` - stops other sounds started by the same asset, so it doesn't overlap with itself.
+- `StopByTagsInterrupter` - stops sounds whose asset has any of the listed tags.
+- `StopByMixerInterrupter` - stops sounds routed to the given output mixer group (child groups are not included).
+- `MultipleInterrupters` - runs several interrupters in order.
+
+If you need custom behaviour, extend `AudioInterrupter` and make your own interrupter type.
+
+Tags are `AudioTag` assets (create them from "Create / Audio / Audio Tag") that you assign to an `AudioPlayerAsset` to group its sounds, e.g. "Music", "UI" or "Outdoor".
+
 ### Playing conductors from code
-You don't have to use an `AudioPlayerAsset` to play conductors. If you'd rather keep them in your own assets and pick which one to play yourself, call `AudioPlayer.PlayConductor()` with your own `AudioPlaybackSettings` - the same settings the `AudioPlayerAsset` has. Pass the asset holding the conductors as well, so their state and the "Interrupt Same Asset" mode work per asset.
+You don't have to use an `AudioPlayerAsset` to play conductors. If you'd rather keep them in your own assets and pick which one to play yourself, call `AudioPlayer.PlayConductor()` with your own `AudioPlaybackSettings` - the same settings the `AudioPlayerAsset` has. Pass the asset holding the conductors as well, so their state and the `StopSameAssetInterrupter` interrupter work per asset.
 
 ```csharp
 [CreateAssetMenu]
