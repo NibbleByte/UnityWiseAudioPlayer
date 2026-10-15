@@ -44,6 +44,11 @@ namespace DevLocker.Audio.Utils.Editor
 					continue;
 				}
 
+				if (property.propertyPath == nameof(AudioPlayerAsset.Comments)) {
+					DrawComments(property);
+					continue;
+				}
+
 				EditorGUILayout.PropertyField(property, true);
 			}
 
@@ -147,6 +152,108 @@ namespace DevLocker.Audio.Utils.Editor
 			m_TemplateEditors.Clear();
 			m_TemplateEditorsSource = null;
 		}
+
+		#region Comments
+
+		private const float CommentMaxHeight = 120f;
+		private const string CommentTextControlName = "WiseAudioPlayer.CommentText";
+
+		private bool m_EditingComment;
+		private bool m_FocusCommentText;
+		private Vector2 m_CommentScroll;
+		private GUIStyle m_CommentStyle;
+
+		private void DrawComments(SerializedProperty commentsProperty)
+		{
+			EditorGUILayout.Space();
+
+			if (commentsProperty.hasMultipleDifferentValues) {
+				m_EditingComment = false;
+				EditorGUILayout.HelpBox("Comments differ between the selected assets.", MessageType.None);
+				return;
+			}
+
+			if (m_EditingComment) {
+				DrawCommentEdit(commentsProperty);
+				return;
+			}
+
+			if (string.IsNullOrEmpty(commentsProperty.stringValue)) {
+				using (new EditorGUILayout.HorizontalScope()) {
+					GUILayout.FlexibleSpace();
+					if (GUILayout.Button("Add comment", GUILayout.Width(120f))) {
+						BeginCommentEdit();
+					}
+					GUILayout.FlexibleSpace();
+				}
+				return;
+			}
+
+			DrawCommentView(commentsProperty);
+		}
+
+		private void DrawCommentView(SerializedProperty commentsProperty)
+		{
+			if (m_CommentStyle == null) {
+				m_CommentStyle = new GUIStyle(EditorStyles.label) { wordWrap = true, richText = false };
+			}
+
+			EditorGUILayout.LabelField(new GUIContent(commentsProperty.displayName, "Double-click the comment to edit it."), EditorStyles.boldLabel);
+
+			var content = new GUIContent(commentsProperty.stringValue);
+			// Rough estimate of the available width (inspector margins + vertical scrollbar).
+			float width = EditorGUIUtility.currentViewWidth - 50f;
+			float height = m_CommentStyle.CalcHeight(content, width) + 8f;
+
+			m_CommentScroll = EditorGUILayout.BeginScrollView(m_CommentScroll, false, false, GUIStyle.none, GUI.skin.verticalScrollbar, EditorStyles.helpBox, GUILayout.Height(Mathf.Min(height, CommentMaxHeight)));
+			GUILayout.Label(content, m_CommentStyle);
+			EditorGUILayout.EndScrollView();
+
+			// Double-click to edit an existing comment.
+			Rect viewRect = GUILayoutUtility.GetLastRect();
+			Event evt = Event.current;
+			if (evt.type == EventType.MouseDown && evt.clickCount == 2 && viewRect.Contains(evt.mousePosition)) {
+				BeginCommentEdit();
+				evt.Use();
+			}
+		}
+
+		private void DrawCommentEdit(SerializedProperty commentsProperty)
+		{
+			EditorGUILayout.LabelField(commentsProperty.displayName, EditorStyles.boldLabel);
+
+			// No scroll view while editing - the text area grows with the content, so the inspector can follow the cursor.
+			GUI.SetNextControlName(CommentTextControlName);
+			// Write directly into the property while typing.
+			commentsProperty.stringValue = EditorGUILayout.TextArea(commentsProperty.stringValue, new GUIStyle(EditorStyles.textArea) { wordWrap = true }, GUILayout.MinHeight(60f));
+
+			if (m_FocusCommentText && Event.current.type == EventType.Repaint) {
+				m_FocusCommentText = false;
+				EditorGUI.FocusTextInControl(CommentTextControlName);
+			}
+
+			using (new EditorGUILayout.HorizontalScope()) {
+				GUILayout.FlexibleSpace();
+				if (GUILayout.Button("End editing", GUILayout.Width(120f))) {
+					string trimmed = commentsProperty.stringValue?.Trim() ?? string.Empty;
+					if (trimmed != commentsProperty.stringValue) {
+						commentsProperty.stringValue = trimmed;
+					}
+					m_EditingComment = false;
+					m_CommentScroll = Vector2.zero;
+					GUI.FocusControl(null);
+				}
+			}
+		}
+
+		private void BeginCommentEdit()
+		{
+			m_EditingComment = true;
+			m_FocusCommentText = true;
+			GUI.FocusControl(null);
+		}
+
+		#endregion
 	}
 
 	/// <summary>

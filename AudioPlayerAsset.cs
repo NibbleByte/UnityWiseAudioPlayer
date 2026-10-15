@@ -26,6 +26,9 @@ namespace DevLocker.Audio
 
 		public ConditionalConductor[] Conductors;
 
+		[Tooltip("Free-form notes about this asset.")]
+		public string Comments;
+
 		void OnValidate()
 		{
 			Utils.WiseSerializeReferenceValidation.ClearDuplicateReferences(this);
