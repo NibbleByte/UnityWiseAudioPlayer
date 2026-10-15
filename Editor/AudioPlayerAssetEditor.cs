@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEditorInternal;
 using UnityEngine;
 
@@ -80,6 +82,18 @@ namespace DevLocker.Audio.Utils.Editor
 			AudioSource template = templateProperty.hasMultipleDifferentValues ? null : templateProperty.objectReferenceValue as AudioSource;
 			if (template == null) {
 				ClearTemplateEditors();
+
+				// Creating a template only makes sense for a single asset with no template.
+				if (!templateProperty.hasMultipleDifferentValues && targets.Length == 1) {
+					EditorGUILayout.Space();
+					using (new EditorGUILayout.HorizontalScope()) {
+						GUILayout.FlexibleSpace();
+						if (GUILayout.Button(new GUIContent("Add Template", "Create a template prefab with an AudioSource next to this asset and assign it."), GUILayout.Width(120f))) {
+							CreateTemplate(templateProperty);
+						}
+						GUILayout.FlexibleSpace();
+					}
+				}
 				return;
 			}
 
@@ -112,6 +126,45 @@ namespace DevLocker.Audio.Utils.Editor
 					}
 				}
 			}
+		}
+
+		private void CreateTemplate(SerializedProperty templateProperty)
+		{
+			var asset = (AudioPlayerAsset)target;
+			string assetPath = AssetDatabase.GetAssetPath(asset);
+			if (string.IsNullOrEmpty(assetPath))
+				return;
+
+			string baseName = asset.name.Replace("AudioAsset", "").Trim(' ', '_', '-', '.');
+			if (string.IsNullOrEmpty(baseName)) {
+				baseName = "Audio";
+			}
+
+			string folder = Path.GetDirectoryName(assetPath).Replace('\\', '/');
+			string prefabPath = AssetDatabase.GenerateUniqueAssetPath($"{folder}/{baseName}_Template.prefab");
+
+			bool confirmed = EditorUtility.DisplayDialog("Add template", $"Create a new template prefab with an AudioSource and assign it to this asset?\n\n{prefabPath}", "Create", "Cancel");
+			if (confirmed) {
+				// Build it in a preview scene, so the open scenes don't get touched (dirtied).
+				var previewScene = EditorSceneManager.NewPreviewScene();
+				try {
+					var go = new GameObject(Path.GetFileNameWithoutExtension(prefabPath), typeof(AudioSource));
+					UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, previewScene);
+
+					GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
+					if (prefab) {
+						templateProperty.objectReferenceValue = prefab.GetComponent<AudioSource>();
+						serializedObject.ApplyModifiedProperties();
+						EditorGUIUtility.PingObject(prefab);
+					}
+				}
+				finally {
+					EditorSceneManager.ClosePreviewScene(previewScene);
+				}
+			}
+
+			// Modal dialog breaks the current GUI layout pass.
+			GUIUtility.ExitGUI();
 		}
 
 		private void RefreshTemplateEditors(AudioSource template)
@@ -181,7 +234,7 @@ namespace DevLocker.Audio.Utils.Editor
 			if (string.IsNullOrEmpty(commentsProperty.stringValue)) {
 				using (new EditorGUILayout.HorizontalScope()) {
 					GUILayout.FlexibleSpace();
-					if (GUILayout.Button("Add comment", GUILayout.Width(120f))) {
+					if (GUILayout.Button("Add Comment", GUILayout.Width(120f))) {
 						BeginCommentEdit();
 					}
 					GUILayout.FlexibleSpace();
@@ -234,7 +287,7 @@ namespace DevLocker.Audio.Utils.Editor
 
 			using (new EditorGUILayout.HorizontalScope()) {
 				GUILayout.FlexibleSpace();
-				if (GUILayout.Button("End editing", GUILayout.Width(120f))) {
+				if (GUILayout.Button("End Editing", GUILayout.Width(120f))) {
 					string trimmed = commentsProperty.stringValue?.Trim() ?? string.Empty;
 					if (trimmed != commentsProperty.stringValue) {
 						commentsProperty.stringValue = trimmed;
