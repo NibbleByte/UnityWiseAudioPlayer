@@ -11,4 +11,4 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aebb990ef4dbfbb488af1ef4ce0678e4, type: 3}
   m_Name: UI_AudioTag
-  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioTagObject
+  m_EditorClassIdentifier: DevLocker.Audio.WiseAudioPlayer::DevLocker.Audio.AudioTag

@@ -23,6 +23,7 @@ MonoBehaviour:
     Delay: 0
     OutputMixer: {fileID: -3821218981890522543, guid: e7ba0b6bbce139246afb42b9fcbfb444, type: 2}
     Template: {fileID: 0}
+    Tags: []
   Conductors:
   - Conductor:
       rid: 529638283108679737
@@ -76,6 +77,7 @@ MonoBehaviour:
             Step: 0
           Pitches: 
     - rid: 529638384707829821
-      type: {class: StopAllSounds, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: StopAllInterrupter, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AllPlayers: 0
+        FadeOutDuration: 0

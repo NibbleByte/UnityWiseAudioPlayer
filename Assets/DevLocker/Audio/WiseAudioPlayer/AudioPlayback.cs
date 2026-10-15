@@ -69,7 +69,7 @@ namespace DevLocker.Audio
 		public RepeatSettings Repeat;
 
 		[SerializeReference]
-		[Tooltip("When this asset starts, what happens to the sounds already playing? Stops are instant.")]
+		[Tooltip("Optional. When this asset starts playing (after Delay), stops other sounds that match the chosen rule. Leave empty to not interrupt anything.")]
 		public AudioInterrupter Interrupter;
 
 		[Tooltip("Seconds to wait before the asset starts. Not repeated when looping.")]
@@ -81,8 +81,8 @@ namespace DevLocker.Audio
 		[Tooltip("AudioSource (prefab or scene object) whose settings are copied to the playing source. Overrides the player's template.\nYou can have audio filter components attached too, but the player must use " + nameof(AudioPlayer.AudioSourcesPoolMode.GlobalPool) + " as pool mode!")]
 		public AudioSource Template;
 
-		[Tooltip("Tags that associate with this asset. Can be used for interrupting, etc...")]
-		public AudioTagObject[] Tags;
+		[Tooltip("Tags for grouping this asset's sounds, e.g. to interrupt them by tag.")]
+		public AudioTag[] Tags;
 
 		/// <summary>
 		/// The <see cref="OutputMixer"/> or the <see cref="Template"/>'s mixer if empty.
@@ -152,11 +152,22 @@ namespace DevLocker.Audio
 	}
 
 	/// <summary>
-	/// Interrupter that is invoked on starting new playback to interrupt any other playing sounds.
+	/// Invoked when a new playback starts (after its delay) to stop other playing sounds.
+	/// The same instance is shared by all playbacks of the asset, so keep implementations stateless.
 	/// </summary>
 	[Serializable]
 	public abstract class AudioInterrupter
 	{
+		/// <summary>
+		/// Tooltip for the fade out duration field implementations may have.
+		/// </summary>
+		protected const string FadeOutDurationTooltip = "Seconds to fade out the interrupted sounds. 0 stops them instantly.";
+
+		/// <summary>
+		/// Tooltip for the all players field implementations may have.
+		/// </summary>
+		protected const string AllPlayersTooltip = "Stop matching sounds on all active players. If off, only on the player starting this sound.";
+
 		public abstract void Interrupt(AudioPlayback playback);
 
 		public virtual void OnValidate(UnityEngine.Object context) { }
@@ -184,7 +195,7 @@ namespace DevLocker.Audio
 		public AudioMixerGroup OutputMixer => AudioSource ? AudioSource.outputAudioMixerGroup : null;
 		public AudioSource Template { get; internal set; }
 
-		public AudioTagObject[] Tags { get; internal set; } = Array.Empty<AudioTagObject>();
+		public AudioTag[] Tags { get; internal set; } = Array.Empty<AudioTag>();
 
 		internal Coroutine ConductorCoroutine;
 		internal Coroutine StopFadeCoroutine;

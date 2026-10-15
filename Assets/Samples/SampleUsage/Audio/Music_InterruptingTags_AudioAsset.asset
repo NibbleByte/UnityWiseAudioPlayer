@@ -32,9 +32,10 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 529638384707829824
-      type: {class: StopSoundsWithTag, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
+      type: {class: StopByTagsInterrupter, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         AllPlayers: 1
+        FadeOutDuration: 0
         Tags:
         - {fileID: 11400000, guid: b89cedad82137cf49bdf852f197d8cd5, type: 2}
     - rid: 8526195024085123079
