@@ -274,12 +274,12 @@ namespace DevLocker.Audio.Playback
 			float initialPitch = playback.AudioSource.pitch;
 
 			while (playback.AudioSource && (playback.AudioSource.isPlaying || playback.IsPaused)) {
-				
+
 				if (playback.IsPaused) {
 					yield return null;
 					continue;
 				}
-				
+
 				float time = TimeSource switch {
 					CurveTimeSource.PlaybackProgress => GetCurveTimeFromProgress(playback.AudioSource),
 					CurveTimeSource.Manual => playback.GetConductorPlaybackStateValue(ManualCurveTime_StorageKey, GetCurveStartTime()),
@@ -321,6 +321,7 @@ namespace DevLocker.Audio.Playback
 		private float GetCurveStartTime() => Curve.length > 0 ? Curve[0].time : 0f;
 	}
 
+	[Serializable]
 	public class PlayAudioWithVFXConductor : PlayAudioConductor
 	{
 		[Header("VFX")]
@@ -353,6 +354,7 @@ namespace DevLocker.Audio.Playback
 		}
 	}
 
+	[Serializable]
 	public class PlayCollectionAudioWithVFXConductor : PlayCollectionAudioConductor
 	{
 		[Header("VFX")]
@@ -390,7 +392,9 @@ namespace DevLocker.Audio.Playback
 	[Serializable]
 	public class IntroThenLoopConductor : AudioConductor
 	{
+		[Tooltip("Intro to play before the " + nameof(Looped) + " clip.")]
 		public AudioClip Intro;
+		[Tooltip("Looped clip played after the " + nameof(Intro) + " finishes.")]
 		public AudioResource Looped;
 
 		[Range(0, 1)]
@@ -430,7 +434,7 @@ namespace DevLocker.Audio.Playback
 		[Tooltip("Where the pitch sequence progress is kept between plays.\n" + StateScopeTooltip)]
 		public ConductorStateScope StateScope;
 
-		[Tooltip(AudioPlayerAsset.CentPitchHint)]
+		[Tooltip("Pitch sequence to play. Each time the next pitch is played unless it gets reset.\n\n" + AudioPlayerAsset.CentPitchHint)]
 		[FieldUnitDecorator("ct", "Cents")]
 		public int[] PitchSequence;
 
@@ -519,6 +523,7 @@ namespace DevLocker.Audio.Playback
 		[Tooltip("Optional intro clip to play before the sequence starts.")]
 		public IntroSettings Intro;
 
+		[Tooltip("Looped sequence to be played by overlapping the clips - start playing next clip just before the current finishes.")]
 		public AudioClip[] Clips;
 
 		[Range(0f, 1f)]
