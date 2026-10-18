@@ -1079,7 +1079,6 @@ namespace DevLocker.Audio
 			playback.AudioSource.outputAudioMixerGroup = settings.GetEffectiveOutputMixer();
 			playback.AudioSource.loop = settings.Repeat.IsLoop;
 			playback.Repeat = settings.Repeat;
-			playback.ConductorStateScope = settings.StateScope;
 			playback.Tags = settings.Tags;
 
 			playback.Template = settings.Template;
@@ -1184,7 +1183,6 @@ namespace DevLocker.Audio
 			playback.AudioSource.outputAudioMixerGroup = m_OutputMixer ? m_OutputMixer : (m_Template ? m_Template.outputAudioMixerGroup : null);
 			playback.AudioSource.loop = m_Repeat.IsLoop;
 			playback.Repeat = m_Repeat;
-			playback.ConductorStateScope = AudioPlaybackSettings.ConductorsStateScope.PerPlayer;
 			playback.Tags = Array.Empty<AudioTag>();
 
 			playback.Template = m_Template;

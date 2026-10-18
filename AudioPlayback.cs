@@ -8,18 +8,22 @@ using UnityEngine.Audio;
 namespace DevLocker.Audio
 {
 	/// <summary>
+	/// Where a conductor keeps its state between plays, such as shuffle order or last clip played.
+	/// See <see cref="AudioPlayback.GetConductorStateValue{T}"/>.
+	/// </summary>
+	public enum ConductorStateScope
+	{
+		PerPlayer,
+		PerAsset,
+	}
+
+	/// <summary>
 	/// Settings used when playing conductors - via <see cref="AudioPlayerAsset"/> or standalone via <see cref="AudioPlayer.PlayConductor"/>.
 	/// They override the <see cref="AudioPlayer"/> settings.
 	/// </summary>
 	[Serializable]
 	public struct AudioPlaybackSettings
 	{
-		public enum ConductorsStateScope
-		{
-			PerPlayer,
-			PerAsset,
-		}
-
 		public enum RepeatMode
 		{
 			Once = 0,
@@ -61,9 +65,6 @@ namespace DevLocker.Audio
 #endif
 			}
 		}
-
-		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Player: each player has its own.\nPer Asset: shared by all players.\n\nFor example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence?")]
-		public ConductorsStateScope StateScope;
 
 		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioPlayer setting.")]
 		public RepeatSettings Repeat;
@@ -119,6 +120,14 @@ namespace DevLocker.Audio
 	[Serializable]
 	public abstract class AudioConductor
 	{
+		/// <summary>
+		/// Explains the <see cref="ConductorStateScope"/> options. Append it to the tooltip of the state scope field implementations may have.
+		/// </summary>
+		protected const string StateScopeTooltip =
+			" > Per Player - each player keeps its own state.\n" +
+			" > Per Asset - all players of this asset share the state.\n\n" +
+			"For example, should the pitch go up no matter which barrel you hit, or should each barrel (player) track its own pitch sequence?";
+
 		public abstract IEnumerator Play(AudioPlayback playback);
 
 		/// <summary>
@@ -183,7 +192,6 @@ namespace DevLocker.Audio
 		public AudioSource AudioSource { get; internal set; }
 		public AudioConductor Conductor { get; internal set; }
 		public UnityEngine.Object ConductorAsset { get; internal set; }	// Asset the conductor is coming from (optional).
-		public AudioPlaybackSettings.ConductorsStateScope ConductorStateScope { get; internal set; }
 		public bool HasConductorFinished { get; internal set; }
 		public readonly float StartTimeUnscaled;
 
@@ -240,22 +248,22 @@ namespace DevLocker.Audio
 		public UnityEngine.Object DebugContext => ConductorAsset != null ? ConductorAsset : Player;
 
 		/// <summary>
-		/// Get conductor state value. Used by conductors. Respects its <see cref="AudioPlaybackSettings.StateScope"/>.
+		/// Get conductor state value, kept per player or per asset depending on <paramref name="scope"/>. Used by conductors.
 		/// </summary>
-		public T GetConductorStateValue<T>(string keyName, T defaultValue)
+		public T GetConductorStateValue<T>(ConductorStateScope scope, string keyName, T defaultValue)
 		{
 			if (Conductor == null)
 				throw new InvalidOperationException($"Trying to get conductor state value for \"{keyName}\", but no valid conductor is set.");
 
-			switch (ConductorStateScope) {
-				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
+			switch (scope) {
+				case ConductorStateScope.PerPlayer:
 					return Player.GetConductorStateValue(Conductor, ConductorAsset, keyName, defaultValue);
 
-				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
+				case ConductorStateScope.PerAsset:
 					return GetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, defaultValue);
 
 				default:
-					throw new ArgumentOutOfRangeException();
+					throw new ArgumentOutOfRangeException(nameof(scope), scope, null);
 			}
 		}
 
@@ -279,24 +287,24 @@ namespace DevLocker.Audio
 		}
 
 		/// <summary>
-		/// Set conductor state value. Used by conductors. Respects its <see cref="AudioPlaybackSettings.StateScope"/>.
+		/// Set conductor state value, kept per player or per asset depending on <paramref name="scope"/>. Used by conductors.
 		/// </summary>
-		public void SetConductorStateValue(string keyName, object value)
+		public void SetConductorStateValue(ConductorStateScope scope, string keyName, object value)
 		{
 			if (Conductor == null)
 				throw new InvalidOperationException($"Trying to set conductor state value for \"{keyName}\", but no valid conductor is set.");
 
-			switch (ConductorStateScope) {
-				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
+			switch (scope) {
+				case ConductorStateScope.PerPlayer:
 					Player.SetConductorStateValue(Conductor, ConductorAsset, keyName, value);
 					break;
 
-				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
+				case ConductorStateScope.PerAsset:
 					SetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, value);
 					break;
 
 				default:
-					throw new ArgumentOutOfRangeException();
+					throw new ArgumentOutOfRangeException(nameof(scope), scope, null);
 			}
 		}
 

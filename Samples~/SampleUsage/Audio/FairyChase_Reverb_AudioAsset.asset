@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: FairyChase_Reverb_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -28,6 +27,7 @@ MonoBehaviour:
   - Conductor:
       rid: 8526195024085123079
     Conditions: []
+  Comments: 
   references:
     version: 2
     RefIds:

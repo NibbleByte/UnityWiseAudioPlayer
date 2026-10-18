@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: MusicWithIntro_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -29,6 +28,7 @@ MonoBehaviour:
   - Conductor:
       rid: 529638131987382329
     Conditions: []
+  Comments: 
   references:
     version: 2
     RefIds:

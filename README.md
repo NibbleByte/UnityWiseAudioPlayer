@@ -37,11 +37,12 @@ Make sure all your sounds are played through the `AudioPlayer` component or API 
 
 The `AudioPlayerAsset` serves as an audio proxy that lets you easily change what sounds should be played. Having sound definitions spread out across separate asset files makes collaborating much easier, and managing them is done through the well-known Unity Project window interface. Your programmers can link the asset in the right prefab, while your sound designer can tweak the asset itself without knowing exactly where it's played from.
 
-When the asset is played, its settings (repeat, interrupter, delay, output mixer, template, tags and state scope) override the ones on the `AudioPlayer`.
+When the asset is played, its settings (repeat, interrupter, delay, output mixer, template and tags) override the ones on the `AudioPlayer`.
 
 The asset offers you a list of `Conductors`. Each conductor has conditions that check whether it should be played, and only the first one whose conditions all pass is used. Conductors decide what to play and how, once the player is triggered. The framework comes with conductors that cover most use cases, but if you need custom behaviour you can always extend them and make your own conductor type. Check the sample scene showcasing all conductor types. Here are the most notable conductor types:
 - `PlayCollectionAudioConductor` - plays a sound picked from a list. Can play them in sequential, shuffle, or random order.
 - `PlayPitchSequenceConductor` - plays the same sound every time, but changes the pitch according to your settings.
+- `PlayByCurveAudioConductor` - plays a sound while a curve drives its volume or pitch, following the playback progress or a time set from code.
 - `IntroThenLoopConductor` - plays an intro sound then loops another. Useful for music.
 - `LoopSequenceOverlappingConductor` - loops sounds from a list by overlapping them (starts playing the next one before the last one finishes).
 
@@ -49,7 +50,7 @@ The asset offers you a list of `Conductors`. Each conductor has conditions that 
 
 ![Conductor Examples](https://raw.githubusercontent.com/NibbleByte/UnityWiseAudioPlayer/refs/heads/master/Docs/Screenshots/ConductorFiltersShot.png)
 
-Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. The asset's "State Scope" setting decides whether this state is kept per audio player (each player has its own) or per asset (shared by all players). For example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence. Each conductor in the asset keeps its own state.
+Some conductors need to persist their state in order to work correctly. Example: `PlayPitchSequenceConductor` needs to store which pitch was last used. These conductors have a "State Scope" setting that decides whether this state is kept per audio player (each player has its own) or per asset (shared by all players). For example, should the pitch go up no matter which barrel you hit, or should each barrel (player) track its own pitch sequence? Each conductor in the asset keeps its own state.
 
 ### Interrupters and tags
 When an asset starts playing (after its delay), its "Interrupter" can stop other sounds that are already playing. For example, a new music track can stop the old one. Leave it empty to not interrupt anything. These interrupters come with the framework:

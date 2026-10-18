@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: Fall_Impact_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -38,6 +37,7 @@ MonoBehaviour:
       rid: 8526195024085123082
     Conditions:
     - rid: 8526195024085123083
+  Comments: 
   references:
     version: 2
     RefIds:
