@@ -362,8 +362,12 @@ namespace DevLocker.Audio.Utils.Editor
 						conductorProperty.FindPropertyRelative(nameof(Playback.PlayCollectionAudioConductor.AudioClips)) ??
 						conductorProperty.FindPropertyRelative(nameof(Playback.IntroThenLoopConductor.Looped)) ??
 						conductorProperty.FindPropertyRelative(nameof(Playback.LoopSequenceOverlappingConductor.Clips)) ??
-						conductorProperty.FindPropertyRelative("Resource"); // In case of direct Unity AudioResource reference.
-						conductorProperty.FindPropertyRelative("Asset"); // In any case?
+						conductorProperty.FindPropertyRelative("Clip") ??
+						conductorProperty.FindPropertyRelative("Resource") ??	// In case of direct Unity AudioResource reference.
+						conductorProperty.FindPropertyRelative("Asset");		// In any case?
+					
+					if (audioClipProperty.objectReferenceValue == null)
+						return;
 
 					if (audioClipProperty.isArray) {
 						if (audioClipProperty.arraySize == 0)

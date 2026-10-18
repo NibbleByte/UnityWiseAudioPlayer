@@ -232,6 +232,92 @@ namespace DevLocker.Audio.Playback
 		}
 	}
 
+	[Serializable]
+	public class PlayByCurveAudioConductor : PlayAudioConductor
+	{
+		public enum CurveTarget
+		{
+			Volume,
+			Pitch,
+		}
+
+		public enum CurveTimeSource
+		{
+			PlaybackProgress,
+			Manual,
+		}
+
+		[Tooltip("Curve values to apply to volume or pitch. For volume values should be in range [0, 1]. For pitch, values should be around 1.")]
+		public AnimationCurve Curve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 1f));
+
+		[Tooltip("What should the curve value be applied to? For volume values should be in range [0, 1]. For pitch, values should be around 1.")]
+		public CurveTarget Target;
+
+		[Tooltip("What should be used for time when evaluating the curve?\n" +
+			" > " + nameof(CurveTimeSource.PlaybackProgress) + " - clip start to end maps to the curve's first to last key, whatever their times are.\n" +
+			" > " + nameof(CurveTimeSource.Manual) + " - time is set from code via " + nameof(SetManualCurveTime) + "(), in the curve's own time units. Starts at the curve's first key.")]
+		public CurveTimeSource TimeSource;
+
+		private const string ManualCurveTime_StorageKey = "CodeCurveTime_" + nameof(PlayByCurveAudioConductor);
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			var baseIt = base.Play(playback);
+			while (baseIt.MoveNext()) {
+				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
+			}
+
+			float initialVolume = playback.AudioSource.volume;
+			float initialPitch = playback.AudioSource.pitch;
+
+			while (playback.AudioSource && (playback.AudioSource.isPlaying || playback.IsPaused)) {
+				
+				if (playback.IsPaused) {
+					yield return null;
+					continue;
+				}
+				
+				float time = TimeSource switch {
+					CurveTimeSource.PlaybackProgress => GetCurveTimeFromProgress(playback.AudioSource),
+					CurveTimeSource.Manual => playback.GetConductorPlaybackStateValue(ManualCurveTime_StorageKey, GetCurveStartTime()),
+					_ => throw new NotSupportedException(),
+				};
+
+				float value = Curve.Evaluate(time);
+
+				switch (Target) {
+					case CurveTarget.Volume: playback.AudioSource.volume = Mathf.Clamp01(value) * initialVolume; break;
+					case CurveTarget.Pitch: playback.AudioSource.pitch = Mathf.Max(value, 0.01f) * initialPitch; break;
+					default: throw new NotSupportedException();
+				}
+
+				yield return null;
+			}
+		}
+
+		/// <summary>
+		/// Set the curve time for the given playback. Make sure you sync your time range with the curve.
+		/// <see cref="TimeSource"/> must be set to <see cref=CurveTimeSource.Manual"/> for this to work.
+		/// </summary>
+		public static void SetManualCurveTime(AudioPlayback playback, float time)
+		{
+			playback.SetConductorPlaybackStateValue(ManualCurveTime_StorageKey, time);
+		}
+
+		private float GetCurveTimeFromProgress(AudioSource source)
+		{
+			if (Curve.length == 0 || source.clip == null || source.clip.samples == 0)
+				return 0f;
+
+			float progress = Mathf.Clamp01(source.timeSamples / (float)source.clip.samples);
+
+			// Maps the clip's playback progress [0, 1] onto the curve's time range (first to last key)
+			return Mathf.Lerp(Curve[0].time, Curve[Curve.length - 1].time, progress);
+		}
+
+		private float GetCurveStartTime() => Curve.length > 0 ? Curve[0].time : 0f;
+	}
+
 	public class PlayAudioWithVFXConductor : PlayAudioConductor
 	{
 		[Header("VFX")]

@@ -16,8 +16,8 @@ namespace DevLocker.Audio
 	{
 		public enum ConductorsStateScope
 		{
-			PerAsset,
 			PerPlayer,
+			PerAsset,
 		}
 
 		public enum RepeatMode
@@ -62,7 +62,7 @@ namespace DevLocker.Audio
 			}
 		}
 
-		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Asset: shared by all players.\nPer Player: each player has its own.\n\nFor example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence?")]
+		[Tooltip("Scope of the conductors' state, such as shuffle order or last clip played.\nPer Player: each player has its own.\nPer Asset: shared by all players.\n\nFor example, should pitch up happen no matter which barrel you hit, or each barrel (player) should track their own pitch up sequence?")]
 		public ConductorsStateScope StateScope;
 
 		[Tooltip("How the sound repeats. Loop With Interval adds seconds of silence after each play.\n\nSome conductors ignore this and loop on their own.\nOverrides the AudioPlayer setting.")]
@@ -211,6 +211,12 @@ namespace DevLocker.Audio
 		/// Used by conductors to persist state per asset between usages. For example: don't repeat last clip. Try to use unique key names.
 		/// </summary>
 		private static Dictionary<ConductorStateKey, object> s_ConductorsPerAssetStateStorage = new Dictionary<ConductorStateKey, object>();
+		
+		/// <summary>
+		/// Used by conductors to persist state per playback. Will be lost after playback finishes.
+		/// Useful for communication with the running conductor.
+		/// </summary>
+		private Dictionary<string, object> m_ConductorsPlaybackStateStorage = new Dictionary<string, object>();
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 		private static void ClearStaticsCache()
@@ -242,11 +248,11 @@ namespace DevLocker.Audio
 				throw new InvalidOperationException($"Trying to get conductor state value for \"{keyName}\", but no valid conductor is set.");
 
 			switch (ConductorStateScope) {
-				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
-					return GetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, defaultValue);
-
 				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					return Player.GetConductorStateValue(Conductor, ConductorAsset, keyName, defaultValue);
+
+				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
+					return GetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, defaultValue);
 
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -261,6 +267,16 @@ namespace DevLocker.Audio
 			bool found = s_ConductorsPerAssetStateStorage.TryGetValue(new ConductorStateKey(conductor, asset, keyName), out object objValue);
 			return found ? (T)objValue : defaultValue;
 		}
+		
+		/// <summary>
+		/// Get conductor state value that is saved on this playback. Values are lost when playback ends.
+		/// Useful for communication with the running conductor.
+		/// </summary>
+		public T GetConductorPlaybackStateValue<T>(string keyName, T defaultValue)
+		{
+			bool found = m_ConductorsPlaybackStateStorage.TryGetValue(keyName, out object objValue);
+			return found ? (T)objValue : defaultValue;
+		}
 
 		/// <summary>
 		/// Set conductor state value. Used by conductors. Respects its <see cref="AudioPlaybackSettings.StateScope"/>.
@@ -271,12 +287,12 @@ namespace DevLocker.Audio
 				throw new InvalidOperationException($"Trying to set conductor state value for \"{keyName}\", but no valid conductor is set.");
 
 			switch (ConductorStateScope) {
-				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
-					SetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, value);
-					break;
-
 				case AudioPlaybackSettings.ConductorsStateScope.PerPlayer:
 					Player.SetConductorStateValue(Conductor, ConductorAsset, keyName, value);
+					break;
+
+				case AudioPlaybackSettings.ConductorsStateScope.PerAsset:
+					SetConductorStateValuePerAsset(Conductor, ConductorAsset, keyName, value);
 					break;
 
 				default:
@@ -290,6 +306,15 @@ namespace DevLocker.Audio
 		public static void SetConductorStateValuePerAsset(AudioConductor conductor, UnityEngine.Object asset, string keyName, object value)
 		{
 			s_ConductorsPerAssetStateStorage[new ConductorStateKey(conductor, asset, keyName)] = value;
+		}
+		
+		/// <summary>
+		/// Set conductor state value that is saved on this playback. Values are lost when playback ends.
+		/// Useful for communication with the running conductor.
+		/// </summary>
+		public void SetConductorPlaybackStateValue(string keyName, object value)
+		{
+			m_ConductorsPlaybackStateStorage[keyName] = value;
 		}
 
 		/// <summary>
