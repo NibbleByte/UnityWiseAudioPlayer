@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: Shock_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -29,6 +28,7 @@ MonoBehaviour:
       rid: 8526195423432933562
     Conditions:
     - rid: 6878235911996309505
+  Comments: 
   references:
     version: 2
     RefIds:

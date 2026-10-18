@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: MatchBlock_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -28,6 +27,7 @@ MonoBehaviour:
   - Conductor:
       rid: 8526194947531473045
     Conditions: []
+  Comments: 
   references:
     version: 2
     RefIds:
@@ -46,4 +46,5 @@ MonoBehaviour:
             StepDB: 0
         ResetOnSequenceEnd: 0
         ResetAfterSeconds: 1
+        StateScope: 0
         PitchSequence: 0000000064000000c80000002c01000090010000f401000058020000bc0200002003000084030000e80300004c040000b0040000

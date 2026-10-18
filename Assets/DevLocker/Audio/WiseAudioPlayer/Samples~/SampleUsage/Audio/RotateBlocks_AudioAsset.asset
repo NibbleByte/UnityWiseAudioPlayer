@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: RotateBlocks_AudioAsset
   m_EditorClassIdentifier: 
   Settings:
-    StateScope: 0
     Repeat:
       Mode: 0
       MinSeconds: 0
@@ -29,6 +28,7 @@ MonoBehaviour:
       rid: 8526195400101331320
     Conditions:
     - rid: 8526195423432933557
+  Comments: 
   references:
     version: 2
     RefIds:
@@ -38,6 +38,7 @@ MonoBehaviour:
       type: {class: PlayCollectionAudioConductor, ns: DevLocker.Audio.Playback, asm: DevLocker.Audio.WiseAudioPlayer}
       data:
         Mode: 2
+        StateScope: 0
         AvoidRepeatingLast: 2
         VolumeRange:
           MinDB: 0

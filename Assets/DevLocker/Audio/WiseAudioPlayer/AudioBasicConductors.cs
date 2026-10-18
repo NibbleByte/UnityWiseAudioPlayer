@@ -109,6 +109,9 @@ namespace DevLocker.Audio.Playback
 			)]
 		public PlaybackMode Mode = PlaybackMode.Random;
 
+		[Tooltip("Where the selection progress is kept between plays: the next clip (Sequential), the shuffled order (Shuffle) or the recently played clips (Random).\n" + StateScopeTooltip)]
+		public ConductorStateScope StateScope;
+
 		[Tooltip("Avoid repeating the last n clips. Used with Random mode. Limited to the number of clips in the collection.")]
 		public int AvoidRepeatingLast = 0;
 
@@ -149,18 +152,18 @@ namespace DevLocker.Audio.Playback
 
 			switch (Mode) {
 				case PlaybackMode.Sequential:
-					int sequentialIndex = playback.GetConductorStateValue(SequentialIndex_StorageKey, 0);
+					int sequentialIndex = playback.GetConductorStateValue(StateScope, SequentialIndex_StorageKey, 0);
 
 					playback.PlayClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
 
 					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
 
-					playback.SetConductorStateValue(SequentialIndex_StorageKey, sequentialIndex);
+					playback.SetConductorStateValue(StateScope, SequentialIndex_StorageKey, sequentialIndex);
 
 					break;
 
 				case PlaybackMode.Shuffle:
-					var shuffleIndices = playback.GetConductorStateValue<List<int>>(ShuffleIndices_StorageKey, null);
+					var shuffleIndices = playback.GetConductorStateValue<List<int>>(StateScope, ShuffleIndices_StorageKey, null);
 					if (shuffleIndices == null || shuffleIndices.Count == 0) {
 						shuffleIndices = Enumerable.Range(0, AudioClips.Length).ToList();
 						Shuffle(shuffleIndices);
@@ -170,12 +173,12 @@ namespace DevLocker.Audio.Playback
 
 					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
 
-					playback.SetConductorStateValue(ShuffleIndices_StorageKey, shuffleIndices);
+					playback.SetConductorStateValue(StateScope, ShuffleIndices_StorageKey, shuffleIndices);
 
 					break;
 
 				case PlaybackMode.Random:
-					var randomLastIndices = playback.GetConductorStateValue<Queue<int>>(RandomLastIndices_StorageKey, null);
+					var randomLastIndices = playback.GetConductorStateValue<Queue<int>>(StateScope, RandomLastIndices_StorageKey, null);
 					if (randomLastIndices == null) {
 						randomLastIndices = new Queue<int>();
 					}
@@ -200,7 +203,7 @@ namespace DevLocker.Audio.Playback
 						randomLastIndices.Dequeue();
 					}
 
-					playback.SetConductorStateValue(RandomLastIndices_StorageKey, randomLastIndices);
+					playback.SetConductorStateValue(StateScope, RandomLastIndices_StorageKey, randomLastIndices);
 
 
 					break;
@@ -424,6 +427,9 @@ namespace DevLocker.Audio.Playback
 		[Tooltip("Reset pitch index after this many seconds idle. Set to 0 to never reset so you can do it manually.")]
 		public float ResetAfterSeconds = 3f;
 
+		[Tooltip("Where the pitch sequence progress is kept between plays.\n" + StateScopeTooltip)]
+		public ConductorStateScope StateScope;
+
 		[Tooltip(AudioPlayerAsset.CentPitchHint)]
 		[FieldUnitDecorator("ct", "Cents")]
 		public int[] PitchSequence;
@@ -458,8 +464,8 @@ namespace DevLocker.Audio.Playback
 				yield break;
 			}
 
-			int pitchIndex = playback.GetConductorStateValue(PitchIndex_StorageKey, 0);
-			float lastPlayTime = playback.GetConductorStateValue(LastPlayTime_StorageKey, -1f);
+			int pitchIndex = playback.GetConductorStateValue(StateScope, PitchIndex_StorageKey, 0);
+			float lastPlayTime = playback.GetConductorStateValue(StateScope, LastPlayTime_StorageKey, -1f);
 
 			if (ResetAfterSeconds > 0 && lastPlayTime + ResetAfterSeconds < Time.unscaledTime) {
 				pitchIndex = 0;
@@ -474,8 +480,8 @@ namespace DevLocker.Audio.Playback
 				: Mathf.Min(pitchIndex + 1, PitchSequence.Length - 1)
 				;
 
-			playback.SetConductorStateValue(PitchIndex_StorageKey, pitchIndex);
-			playback.SetConductorStateValue(LastPlayTime_StorageKey, Time.unscaledTime);
+			playback.SetConductorStateValue(StateScope, PitchIndex_StorageKey, pitchIndex);
+			playback.SetConductorStateValue(StateScope, LastPlayTime_StorageKey, Time.unscaledTime);
 
 			yield break;
 		}
