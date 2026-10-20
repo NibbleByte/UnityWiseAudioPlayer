@@ -1,0 +1,98 @@
+using System;
+using UnityEngine;
+using UnityEngine.Audio;
+
+namespace DevLocker.Audio
+{
+	/// <summary>
+	/// Component to quickly stop any playing players directly or players playing specific <see cref="AudioResource"/>s.
+	/// </summary>
+	[AddComponentMenu("Audio/Audio Player Interrupter")]
+	public class AudioPlayerInterrupter : MonoBehaviour
+	{
+		[Header("Which?")]
+		[Tooltip("AudioPlayer to be stopped (interrupted)")]
+		public AudioPlayer[] Players;
+
+		[Tooltip("AudioPlayer that are playing these AudioResources will be stopped")]
+		public AudioResource[] Resources;
+
+		[Tooltip("AudioPlayer that are playing AudioResources with names containing this string (case-insensitive) will be stopped")]
+		public string ResourceNameContains = "";
+
+		[Header("When?")]
+		[Tooltip("Stop the targets above when this component is enabled.")]
+		public bool StopTargetsOnEnable = true;
+
+		[Tooltip("Stop the targets above whenever this player starts a sound.")]
+		public AudioPlayer StopTargetsOnWhenPlaying;
+
+		void OnEnable()
+		{
+			if (StopTargetsOnEnable) {
+				StopTargets();
+			}
+
+			if (StopTargetsOnWhenPlaying) {
+				AudioPlayer.PlaybackStarted += OnPlayStarted;
+
+				if (StopTargetsOnWhenPlaying.IsPlaying) {
+					StopTargets();
+				}
+			}
+		}
+
+		void OnDisable()
+		{
+			// Always unsubscribe as StopTargetsOnWhenPlaying may have been destroyed, so null check is not valid.
+			AudioPlayer.PlaybackStarted -= OnPlayStarted;
+		}
+
+		public void StopTargets()
+		{
+			foreach (var player in Players) {
+				if (player && player.IsPlaying) {
+					player.Stop();
+				}
+			}
+
+			if (Resources.Length > 0 || !string.IsNullOrWhiteSpace(ResourceNameContains)) {
+				foreach (var player in AudioPlayer.ActivePlayers) {
+					if (!player.IsPlaying)
+						continue;
+
+					// Already stopped above.
+					if (Array.IndexOf(Players, player) != -1)
+						continue;
+
+					var playbacks = player.ActivePlaybacks;
+					for (int i = playbacks.Count - 1; i >= 0; i--) {
+						var playback = playbacks[i];
+
+						if (playback.AudioSource == null)
+							continue;
+
+						AudioResource resource = playback.AudioSource.resource;
+
+						if (resource && Array.IndexOf(Resources, resource) != -1) {
+							player.Stop(playback);
+							continue;
+						}
+
+						if (!string.IsNullOrWhiteSpace(ResourceNameContains) && resource && resource.name.Contains(ResourceNameContains, StringComparison.OrdinalIgnoreCase)) {
+							player.Stop(playback);
+							continue;
+						}
+					}
+				}
+			}
+		}
+
+		private void OnPlayStarted(AudioPlayback playback)
+		{
+			if (StopTargetsOnWhenPlaying == playback.Player) {
+				StopTargets();
+			}
+		}
+	}
+}

@@ -1,0 +1,585 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using DevLocker.Audio.Utils;
+using UnityEngine;
+using UnityEngine.Audio;
+
+namespace DevLocker.Audio.Playback
+{
+	[Serializable]
+	public class SequenceConductor : AudioConductor
+	{
+		[Tooltip("Run each conductor after the last one has finished.")]
+		[SerializeReference]
+		public AudioConductor[] Conductors;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			foreach(AudioConductor conductor in Conductors) {
+				if (conductor == null) {
+					Debug.LogWarning($"Missing conductor in sequence for \"{playback.DebugContext}\".", playback.DebugContext);
+					continue;
+				}
+
+				playback.Conductor = conductor;
+				yield return conductor.Play(playback);
+				playback.Conductor = this;
+
+				// Wait for the sound to finish before moving on.
+				while (playback.AudioSource && (playback.AudioSource.isPlaying || playback.IsPaused))
+					yield return null;
+			}
+		}
+
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			base.OnValidate(context);
+
+			foreach (AudioConductor conductor in Conductors) {
+				conductor?.OnValidate(context);
+			}
+		}
+	}
+
+	[Serializable]
+	public class SilenceConductor : AudioConductor
+	{
+		[Tooltip("Silence duration in seconds.")]
+		public float Duration = 1.0f;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			float waited = 0f;
+			while (waited < Duration) {
+				yield return null;
+				if (!playback.IsPaused)
+					waited += Time.unscaledDeltaTime;
+			}
+		}
+
+#if UNITY_EDITOR
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			if (Duration < 0.0f) {
+				Duration = 0.0f;
+				UnityEditor.EditorUtility.SetDirty(context);
+			}
+		}
+#endif
+	}
+
+	[Serializable]
+	public class PlayAudioConductor : AudioConductor
+	{
+		public ClipWithVolumePitch AudioClip;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			if (AudioClip.Clip == null) {
+				Debug.LogWarning($"No audio clip specified for conductor to play on \"{playback.DebugContext}\".", playback.DebugContext);
+				yield break;
+			}
+
+			playback.PlayClip(AudioClip);
+
+			yield break;
+		}
+	}
+
+	[Serializable]
+	public class PlayCollectionAudioConductor : AudioConductor
+	{
+		public enum PlaybackMode
+		{
+			Sequential,
+			Shuffle,
+			Random,
+		}
+
+		private const string SequentialIndex_StorageKey = "SequentialIndex_" + nameof(PlayCollectionAudioConductor);
+		private const string ShuffleIndices_StorageKey = "ShuffleList_" + nameof(PlayCollectionAudioConductor);
+		private const string RandomLastIndices_StorageKey = "RandomLastIndices" + nameof(PlayCollectionAudioConductor);
+
+		[Tooltip("How clips from the collection will be selected on play.\n" +
+			" > Sequential - select in sequential order from the list\n" +
+			" > Shuffle - shuffles the list before playback. Each clip is played once before the list is reshuffled and repeated.\n" +
+			" > Random - select randomly each time from the list (can duplicate)."
+			)]
+		public PlaybackMode Mode = PlaybackMode.Random;
+
+		[Tooltip("Where the selection progress is kept between plays: the next clip (Sequential), the shuffled order (Shuffle) or the recently played clips (Random).\n" + StateScopeTooltip)]
+		public ConductorStateScope StateScope;
+
+		[Tooltip("Avoid repeating the last n clips. Used with Random mode. Limited to the number of clips in the collection.")]
+		public int AvoidRepeatingLast = 0;
+
+		[Space]
+		[Tooltip("Random volume offset in whole decibels, rolled on every play and added on top of the volume of the selected clip.\nThe final volume is clamped to [-80, 0] dB.")]
+		public VolumeRange VolumeRange;
+
+		[Tooltip("Random pitch offset, rolled on every play and added on top of the pitch of the selected clip.\n\n" + AudioPlayerAsset.CentPitchHint)]
+		public PitchRange PitchRange;
+
+		public ClipWithVolumePitch[] AudioClips;
+
+#if UNITY_EDITOR
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			base.OnValidate(context);
+
+			if (AvoidRepeatingLast < 0) {
+				AvoidRepeatingLast = 0;
+				UnityEditor.EditorUtility.SetDirty(context);
+			}
+
+			if (AvoidRepeatingLast > AudioClips.Length - 1) {
+				AvoidRepeatingLast = Mathf.Max(AudioClips.Length - 1, 0);
+				UnityEditor.EditorUtility.SetDirty(context);
+			}
+		}
+#endif
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			if (AudioClips.Length == 0)
+				yield break;
+
+			// Offsets on top of the selected clip's own volume and pitch. Roll them only once per play.
+			int volumeOffsetDB = VolumeRange.Roll();
+			int pitchOffsetCents = PitchRange.Roll();
+
+			switch (Mode) {
+				case PlaybackMode.Sequential:
+					int sequentialIndex = playback.GetConductorStateValue(StateScope, SequentialIndex_StorageKey, 0);
+
+					playback.PlayClip(AudioClips[sequentialIndex % AudioClips.Length /* Clamp just in case */], volumeOffsetDB, pitchOffsetCents);
+
+					sequentialIndex = (sequentialIndex + 1) % AudioClips.Length;
+
+					playback.SetConductorStateValue(StateScope, SequentialIndex_StorageKey, sequentialIndex);
+
+					break;
+
+				case PlaybackMode.Shuffle:
+					var shuffleIndices = playback.GetConductorStateValue<List<int>>(StateScope, ShuffleIndices_StorageKey, null);
+					if (shuffleIndices == null || shuffleIndices.Count == 0) {
+						shuffleIndices = Enumerable.Range(0, AudioClips.Length).ToList();
+						Shuffle(shuffleIndices);
+					}
+
+					playback.PlayClip(AudioClips[shuffleIndices.LastOrDefault()], volumeOffsetDB, pitchOffsetCents);
+
+					shuffleIndices.RemoveAt(shuffleIndices.Count - 1);
+
+					playback.SetConductorStateValue(StateScope, ShuffleIndices_StorageKey, shuffleIndices);
+
+					break;
+
+				case PlaybackMode.Random:
+					var randomLastIndices = playback.GetConductorStateValue<Queue<int>>(StateScope, RandomLastIndices_StorageKey, null);
+					if (randomLastIndices == null) {
+						randomLastIndices = new Queue<int>();
+					}
+
+					var clipIndexPairs = AudioClips
+						.Select((c, i) => KeyValuePair.Create(c, i))
+						.Where(pair => !randomLastIndices.Contains(pair.Value))
+						.ToList();
+
+					if (clipIndexPairs.Count == 0) {
+						var lastIndex = randomLastIndices.Dequeue();
+						clipIndexPairs.Add(KeyValuePair.Create(AudioClips[lastIndex], lastIndex));
+					}
+
+					var clipIndexPair = clipIndexPairs[UnityEngine.Random.Range(0, clipIndexPairs.Count)];
+
+					playback.PlayClip(clipIndexPair.Key, volumeOffsetDB, pitchOffsetCents);
+
+					randomLastIndices.Enqueue(clipIndexPair.Value);
+
+					while(randomLastIndices.Count > Mathf.Max(AvoidRepeatingLast, 0)) {
+						randomLastIndices.Dequeue();
+					}
+
+					playback.SetConductorStateValue(StateScope, RandomLastIndices_StorageKey, randomLastIndices);
+
+
+					break;
+
+				default:
+					throw new NotSupportedException(Mode.ToString());
+			}
+
+
+
+			yield break;
+		}
+
+		private static System.Random s_ShuffleRandom = new System.Random();
+
+		// Fisher-Yates shuffle
+		// https://xlinux.nist.gov/dads/HTML/fisherYatesShuffle.html
+		// https://stackoverflow.com/questions/273313/randomize-a-listt
+		private static void Shuffle<T>(IList<T> list)
+		{
+			int n = list.Count;
+			while (n > 1) {
+				n--;
+				int k = s_ShuffleRandom.Next(n + 1);
+				T value = list[k];
+				list[k] = list[n];
+				list[n] = value;
+			}
+		}
+	}
+
+	[Serializable]
+	public class PlayByCurveAudioConductor : PlayAudioConductor
+	{
+		public enum CurveTarget
+		{
+			Volume,
+			Pitch,
+		}
+
+		public enum CurveTimeSource
+		{
+			PlaybackProgress,
+			Manual,
+		}
+
+		[Tooltip("Curve values to apply to volume or pitch. For volume values should be in range [0, 1]. For pitch, values should be around 1.")]
+		public AnimationCurve Curve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 1f));
+
+		[Tooltip("What should the curve value be applied to? For volume values should be in range [0, 1]. For pitch, values should be around 1.")]
+		public CurveTarget Target;
+
+		[Tooltip("What should be used for time when evaluating the curve?\n" +
+			" > " + nameof(CurveTimeSource.PlaybackProgress) + " - clip start to end maps to the curve's first to last key, whatever their times are.\n" +
+			" > " + nameof(CurveTimeSource.Manual) + " - time is set from code via " + nameof(SetManualCurveTime) + "(), in the curve's own time units. Starts at the curve's first key.")]
+		public CurveTimeSource TimeSource;
+
+		private const string ManualCurveTime_StorageKey = "CodeCurveTime_" + nameof(PlayByCurveAudioConductor);
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			var baseIt = base.Play(playback);
+			while (baseIt.MoveNext()) {
+				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
+			}
+
+			float initialVolume = playback.AudioSource.volume;
+			float initialPitch = playback.AudioSource.pitch;
+
+			while (playback.AudioSource && (playback.AudioSource.isPlaying || playback.IsPaused)) {
+
+				if (playback.IsPaused) {
+					yield return null;
+					continue;
+				}
+
+				float time = TimeSource switch {
+					CurveTimeSource.PlaybackProgress => GetCurveTimeFromProgress(playback.AudioSource),
+					CurveTimeSource.Manual => playback.GetConductorPlaybackStateValue(ManualCurveTime_StorageKey, GetCurveStartTime()),
+					_ => throw new NotSupportedException(),
+				};
+
+				float value = Curve.Evaluate(time);
+
+				switch (Target) {
+					case CurveTarget.Volume: playback.AudioSource.volume = Mathf.Clamp01(value) * initialVolume; break;
+					case CurveTarget.Pitch: playback.AudioSource.pitch = Mathf.Max(value, 0.01f) * initialPitch; break;
+					default: throw new NotSupportedException();
+				}
+
+				yield return null;
+			}
+		}
+
+		/// <summary>
+		/// Set the curve time for the given playback. Make sure you sync your time range with the curve.
+		/// <see cref="TimeSource"/> must be set to <see cref=CurveTimeSource.Manual"/> for this to work.
+		/// </summary>
+		public static void SetManualCurveTime(AudioPlayback playback, float time)
+		{
+			playback.SetConductorPlaybackStateValue(ManualCurveTime_StorageKey, time);
+		}
+
+		private float GetCurveTimeFromProgress(AudioSource source)
+		{
+			if (Curve.length == 0 || source.clip == null || source.clip.samples == 0)
+				return 0f;
+
+			float progress = Mathf.Clamp01(source.timeSamples / (float)source.clip.samples);
+
+			// Maps the clip's playback progress [0, 1] onto the curve's time range (first to last key)
+			return Mathf.Lerp(Curve[0].time, Curve[Curve.length - 1].time, progress);
+		}
+
+		private float GetCurveStartTime() => Curve.length > 0 ? Curve[0].time : 0f;
+	}
+
+	[Serializable]
+	public class PlayAudioWithVFXConductor : PlayAudioConductor
+	{
+		[Header("VFX")]
+		public bool ParentToSource;
+		public bool RotateAsSource;
+		public Vector3 Offset;
+
+		public GameObject VisualEffectsPrefab;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			var baseIt = base.Play(playback);
+			while (baseIt.MoveNext()) {
+				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
+			};
+
+			AudioPlayer player = playback.Player;
+
+			if (VisualEffectsPrefab) {
+				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
+
+				if (ParentToSource) {
+					GameObject.Instantiate(VisualEffectsPrefab, player.transform.position + Offset, rotation, player.transform);
+				} else {
+					GameObject.Instantiate(VisualEffectsPrefab, player.transform.position + Offset, rotation);
+				}
+			}
+
+			yield break;
+		}
+	}
+
+	[Serializable]
+	public class PlayCollectionAudioWithVFXConductor : PlayCollectionAudioConductor
+	{
+		[Header("VFX")]
+		public bool ParentToSource;
+		public bool RotateAsSource;
+		public Vector3 Offset;
+
+		public GameObject[] VisualEffectsPrefabs;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			var baseIt = base.Play(playback);
+			while (baseIt.MoveNext()) {
+				// Assume base method is instant - no yields. If we yield it, the code will resume the next frame.
+			};
+
+			AudioPlayer player = playback.Player;
+
+			if (VisualEffectsPrefabs.Length > 0) {
+				Quaternion rotation = RotateAsSource ? player.transform.rotation : Quaternion.identity;
+
+				var effectsPrefab = VisualEffectsPrefabs[UnityEngine.Random.Range(0, VisualEffectsPrefabs.Length)];
+
+				if (ParentToSource) {
+					GameObject.Instantiate(effectsPrefab, player.transform.position + Offset, rotation, player.transform);
+				} else {
+					GameObject.Instantiate(effectsPrefab, player.transform.position + Offset, rotation);
+				}
+			}
+
+			yield break;
+		}
+	}
+
+	[Serializable]
+	public class IntroThenLoopConductor : AudioConductor
+	{
+		[Tooltip("Intro to play before the " + nameof(Looped) + " clip.")]
+		public AudioClip Intro;
+		[Tooltip("Looped clip played after the " + nameof(Intro) + " finishes.")]
+		public AudioResource Looped;
+
+		[Range(0, 1)]
+		public float Volume = 1.0f;
+
+		public float Overlap = 0f;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			AudioSource audioSource = playback.AudioSource;
+
+			audioSource.volume = Volume * playback.Player.Volume;
+			audioSource.resource = Looped;
+			audioSource.loop = true;
+
+			// Can't use "Play Direct" methods as we want the loop enabled. Use PlayOneShot() to avoid looping the intro.
+			audioSource.PlayOneShot(Intro);
+
+			double introLengthDouble = (double)Intro.samples / (double)Intro.frequency; // This is more accurate than clip.float.
+			audioSource.PlayScheduled(AudioSettings.dspTime + introLengthDouble - Overlap);
+
+			yield break;
+		}
+	}
+
+	[Serializable]
+	public class PlayPitchSequenceConductor : AudioConductor
+	{
+		public ClipWithVolume AudioClip;
+
+		[Tooltip("On reaching the end of the sequence: restart from the first pitch (on), or keep using the last pitch (off).")]
+		public bool ResetOnSequenceEnd = false;
+
+		[Tooltip("Reset pitch index after this many seconds idle. Set to 0 to never reset so you can do it manually.")]
+		public float ResetAfterSeconds = 3f;
+
+		[Tooltip("Where the pitch sequence progress is kept between plays.\n" + StateScopeTooltip)]
+		public ConductorStateScope StateScope;
+
+		[Tooltip("Pitch sequence to play. Each time the next pitch is played unless it gets reset.\n\n" + AudioPlayerAsset.CentPitchHint)]
+		[FieldUnitDecorator("ct", "Cents")]
+		public int[] PitchSequence;
+
+		private const string PitchIndex_StorageKey = "PitchIndex_" + nameof(PlayPitchSequenceConductor);
+		private const string LastPlayTime_StorageKey = "LastPlayTime_" + nameof(PlayPitchSequenceConductor);
+
+#if UNITY_EDITOR
+		public override void OnValidate(UnityEngine.Object context)
+		{
+			base.OnValidate(context);
+
+			bool hasChanged = false;
+
+			for (int i = 0; i < PitchSequence.Length; i++) {
+				if (PitchSequence[i] < 0) {
+					PitchSequence[i] = 0;
+					hasChanged = true;
+				}
+			}
+
+			if (hasChanged) {
+				UnityEditor.EditorUtility.SetDirty(context);
+			}
+		}
+#endif
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			if (AudioClip.Clip == null) {
+				Debug.LogWarning($"No audio clip specified for conductor to play on \"{playback.DebugContext}\".", playback.DebugContext);
+				yield break;
+			}
+
+			int pitchIndex = playback.GetConductorStateValue(StateScope, PitchIndex_StorageKey, 0);
+			float lastPlayTime = playback.GetConductorStateValue(StateScope, LastPlayTime_StorageKey, -1f);
+
+			if (ResetAfterSeconds > 0 && lastPlayTime + ResetAfterSeconds < Time.unscaledTime) {
+				pitchIndex = 0;
+			}
+
+			float pitch = Mathf.Pow(AudioPlayerAsset.CentPitchSize, PitchSequence[pitchIndex]);
+
+			playback.PlayClip(AudioClip, pitch);
+
+			pitchIndex = ResetOnSequenceEnd
+				? (pitchIndex + 1) % PitchSequence.Length
+				: Mathf.Min(pitchIndex + 1, PitchSequence.Length - 1)
+				;
+
+			playback.SetConductorStateValue(StateScope, PitchIndex_StorageKey, pitchIndex);
+			playback.SetConductorStateValue(StateScope, LastPlayTime_StorageKey, Time.unscaledTime);
+
+			yield break;
+		}
+
+		/// <summary>
+		/// Helper function to reset the pitch sequence. Useful if <see cref="ResetAfterSeconds"/> is set to 0.
+		/// </summary>
+		public static void ResetPitchIndex(UnityEngine.Object asset, AudioPlayer player)
+		{
+			// Asset can be null.
+			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
+			AudioPlayback.SetConductorStateValueForTypePerAsset(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);
+
+			if (player) {
+				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, PitchIndex_StorageKey, 0);
+				player.SetConductorStateValueForType(typeof(PlayPitchSequenceConductor), asset, LastPlayTime_StorageKey, 0f);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Play multiple sounds in a sequence, each one overlapping the last a bit.
+	/// Helps create continues loop that doesn't feel like one.
+	/// </summary>
+	[Serializable]
+	public class LoopSequenceOverlappingConductor : AudioConductor
+	{
+		[Serializable]
+		public struct IntroSettings
+		{
+			public AudioClip Intro;
+			public float IntroOverlap;
+		}
+
+		[Tooltip("Optional intro clip to play before the sequence starts.")]
+		public IntroSettings Intro;
+
+		[Tooltip("Looped sequence to be played by overlapping the clips - start playing next clip just before the current finishes.")]
+		public AudioClip[] Clips;
+
+		[Range(0f, 1f)]
+		public float Volume = 1.0f;
+
+		[Tooltip("How long to keep playing the sequence, in seconds. -1 plays forever.")]
+		public float Duration = -1f;
+		[Tooltip("How much time should the clips overlap each other in seconds. Set to 0 for no overlap.")]
+		public float Overlap = 0.1f;
+		public bool RandomizeSequence = false;
+
+		public override IEnumerator Play(AudioPlayback playback)
+		{
+			if (Clips.Length == 0)
+				yield break;
+
+			AudioClip clip = Clips.First();
+
+			float startTime = float.MinValue;   // Fake it to start immediately.
+			float totalPlayTime = 0f;
+			bool playIntro = Intro.Intro != null;
+			float currentOverlap = playIntro ? Intro.IntroOverlap : Overlap;
+
+			while (true) {
+
+				if (playback.Player.IsPaused)
+					yield return null;
+
+				totalPlayTime += Time.unscaledDeltaTime;
+				if (Duration >= 0f && totalPlayTime > Duration)
+					yield break;	// The last clip will continue playing as OneShot.
+
+
+				if (Time.unscaledTime - startTime > clip.length - currentOverlap) {
+
+					if (playIntro) {
+						clip = Intro.Intro;
+						playIntro = false;
+					} else {
+						int nextIndex = RandomizeSequence
+							? UnityEngine.Random.Range(0, Clips.Length)
+							: (Array.IndexOf(Clips, clip) + 1) % Clips.Length;
+						;
+
+						clip = Clips[nextIndex];
+						currentOverlap = Overlap;
+					}
+
+					startTime = Time.unscaledTime;
+
+					playback.PlayClipOneShot(clip, Volume);
+				}
+
+				yield return null;
+			}
+		}
+	}
+
+}
