@@ -1,2 +1,2 @@
-git subtree push --prefix Assets/DevLocker/Audio/WiseAudioPlayer origin upm
+git subtree push --prefix Packages/devlocker.audio.wiseaudioplayer origin upm
 pause
