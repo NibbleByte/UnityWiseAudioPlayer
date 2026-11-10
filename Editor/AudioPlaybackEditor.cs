@@ -58,15 +58,37 @@ namespace DevLocker.Audio.Editor
 	[CustomPropertyDrawer(typeof(AudioCondition))]
 	public class AudioConditionDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
+		protected override string FormatDisplayedTypeName(string typeName)
+		{
+			return base.FormatDisplayedTypeName(typeName)
+				.Replace("Condition", "")
+				.Replace("_", " ")
+				;
+		}
 	}
 
 	[CustomPropertyDrawer(typeof(AudioConductor))]
 	public class AudioConductorDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
+		protected override string FormatDisplayedTypeName(string typeName)
+		{
+			return base.FormatDisplayedTypeName(typeName)
+				.Replace("Conductor", "")
+				.Replace("_", " ")
+				;
+		}
 	}
 
 	[CustomPropertyDrawer(typeof(AudioInterrupter))]
 	public class AudioInterrupterDrawer : WiseSerializeReferenceBasePropertyDrawerCOPY
 	{
+		protected override string FormatDisplayedTypeName(string typeName)
+		{
+			return base.FormatDisplayedTypeName(typeName)
+				.Replace("Interrupters", "")
+				.Replace("Interrupter", "")
+				.Replace("_", " ")
+				;
+		}
 	}
 }
